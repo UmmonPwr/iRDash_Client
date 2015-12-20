@@ -1,0 +1,23 @@
+If touch sensing is not working then add 2 microsec delay in "HW_AVR.inc"
+http://forum.arduino.cc/index.php?topic=147762.0
+
+word UTouch::touch_ReadData()
+{
+	word data = 0;
+
+	for(byte count=0; count<12; count++)
+	{
+		data <<= 1;
+		sbi(P_CLK, B_CLK);
+		cbi(P_CLK, B_CLK);
+		delayMicroseconds(2);	// added for more stability
+		if (rbi(P_DOUT, B_DOUT))
+			data++;
+	}
+	return(data);
+}
+
+// SKU120120 - SSD1289 320x240 TFT LCD
+#define CAL_X 0x00758E43UL
+#define CAL_Y 0x03C7015FUL
+#define CAL_S 0x000EF13FUL
