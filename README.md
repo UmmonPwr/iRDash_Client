@@ -9,7 +9,4 @@ The screen layout is optimized for the 320x240 resolution but it is relatively e
 
 To display the live data of iRacing it needs the "iRDash Server" program running on Windows host and connected to the Arduino board via USB.
 
-To compile the program you need the below libraries from http://www.rinkydinkelectronics.com/:
-UTFT
-UTouch
-UTFT_Buttons
+To compile the program you need the below libraries from http://www.rinkydinkelectronics.com/: UTFT, UTouch, UTFT_Buttons
