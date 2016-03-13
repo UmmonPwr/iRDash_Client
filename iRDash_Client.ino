@@ -2,9 +2,15 @@
 #include <UTouch.h>
 #include <UTFT_Buttons.h>
 
-#define DefaultCar 0    // default car profile (numbering starts with 0)
-#define NumOfCars 3     // number of car profiles
 #define ScreenWidth 319 // width of the display in pixels -1
+
+// define car identification numbers
+#define NumOfCars 4     // number of car profiles
+#define DefaultCar 0    // default car profile (numbering starts with 0)
+#define ID_Skippy 0
+#define ID_CTS_V  1
+#define ID_MX5_NC 2
+#define ID_MX5_ND 3
 
 // define the drawing colors
 #define dc_r 100  // default color
@@ -135,119 +141,147 @@ void ResetInternalData()
 // upload the screen layout and warning limits per car
 void UploadCarProfiles()
 {
-  // 0: Skippy
-  ViewLayout[0].CarName[0] = 'S';
-  ViewLayout[0].CarName[1] = 'k';
-  ViewLayout[0].CarName[2] = 'i';
-  ViewLayout[0].CarName[3] = 'p';
-  ViewLayout[0].CarName[4] = 'p';
-  ViewLayout[0].CarName[5] = 'y';
-  ViewLayout[0].CarName[6] = 0;
-  ViewLayout[0].FuelPosX = 0;
-  ViewLayout[0].FuelPosY = 150;
-  ViewLayout[0].ShowFuel = true;
-  ViewLayout[0].GearPosX = 280;
-  ViewLayout[0].GearPosY = 65;
-  ViewLayout[0].ShowGear = true;
-  ViewLayout[0].RPMPosY = 25;
-  ViewLayout[0].RPMscale = 20.625;  // 6600 / 320
-  ViewLayout[0].ShowRPM = true;
-  ViewLayout[0].SLIPosY = 0;
-  ViewLayout[0].ShowSLI = true;
-  ViewLayout[0].SpeedPosX = 0;
-  ViewLayout[0].SpeedPosY = 75;
-  ViewLayout[0].ShowSpeed = true;
-  ViewLayout[0].WaterTempPosX = 0;
-  ViewLayout[0].WaterTempPosY = 190;
-  ViewLayout[0].ShowWaterTemp = true;
+  // Skippy
+  ViewLayout[ID_Skippy].CarName[0] = 'S';
+  ViewLayout[ID_Skippy].CarName[1] = 'k';
+  ViewLayout[ID_Skippy].CarName[2] = 'i';
+  ViewLayout[ID_Skippy].CarName[3] = 'p';
+  ViewLayout[ID_Skippy].CarName[4] = 'p';
+  ViewLayout[ID_Skippy].CarName[5] = 'y';
+  ViewLayout[ID_Skippy].CarName[6] = 0;
+  ViewLayout[ID_Skippy].FuelPosX = 0;
+  ViewLayout[ID_Skippy].FuelPosY = 150;
+  ViewLayout[ID_Skippy].ShowFuel = true;
+  ViewLayout[ID_Skippy].GearPosX = 280;
+  ViewLayout[ID_Skippy].GearPosY = 65;
+  ViewLayout[ID_Skippy].ShowGear = true;
+  ViewLayout[ID_Skippy].RPMPosY = 25;
+  ViewLayout[ID_Skippy].RPMscale = 20.625;  // 6600 / 320
+  ViewLayout[ID_Skippy].ShowRPM = true;
+  ViewLayout[ID_Skippy].SLIPosY = 0;
+  ViewLayout[ID_Skippy].ShowSLI = true;
+  ViewLayout[ID_Skippy].SpeedPosX = 0;
+  ViewLayout[ID_Skippy].SpeedPosY = 75;
+  ViewLayout[ID_Skippy].ShowSpeed = true;
+  ViewLayout[ID_Skippy].WaterTempPosX = 0;
+  ViewLayout[ID_Skippy].WaterTempPosY = 190;
+  ViewLayout[ID_Skippy].ShowWaterTemp = true;
 
-  ViewWarning[0].Fuel = 25;
-  ViewWarning[0].RPM = 291;     // 6000 / RPMscale
-  ViewWarning[0].SLI[0] = 4900;
-  ViewWarning[0].SLI[1] = 5400;
-  ViewWarning[0].SLI[2] = 5800;
-  ViewWarning[0].SLI[3] = 6100;
-  ViewWarning[0].WaterTemp = 90;
+  ViewWarning[ID_Skippy].Fuel = 25;
+  ViewWarning[ID_Skippy].RPM = 291;     // 6000 / RPMscale
+  ViewWarning[ID_Skippy].SLI[0] = 4900;
+  ViewWarning[ID_Skippy].SLI[1] = 5400;
+  ViewWarning[ID_Skippy].SLI[2] = 5800;
+  ViewWarning[ID_Skippy].SLI[3] = 6100;
+  ViewWarning[ID_Skippy].WaterTemp = 90;
 
+  // CTS-V
+  ViewLayout[ID_CTS_V].CarName[0] = 'C';
+  ViewLayout[ID_CTS_V].CarName[1] = 'T';
+  ViewLayout[ID_CTS_V].CarName[2] = 'S';
+  ViewLayout[ID_CTS_V].CarName[3] = '-';
+  ViewLayout[ID_CTS_V].CarName[4] = 'V';
+  ViewLayout[ID_CTS_V].CarName[5] = 0;
+  ViewLayout[ID_CTS_V].CarName[6] = 0;
+  ViewLayout[ID_CTS_V].FuelPosX = 0;
+  ViewLayout[ID_CTS_V].FuelPosY = 150;
+  ViewLayout[ID_CTS_V].ShowFuel = true;
+  ViewLayout[ID_CTS_V].GearPosX = 280;
+  ViewLayout[ID_CTS_V].GearPosY = 65;
+  ViewLayout[ID_CTS_V].ShowGear = true;
+  ViewLayout[ID_CTS_V].RPMPosY = 25;
+  ViewLayout[ID_CTS_V].RPMscale = 25;  // 8000 / 320
+  ViewLayout[ID_CTS_V].ShowRPM = true;
+  ViewLayout[ID_CTS_V].SLIPosY = 0;
+  ViewLayout[ID_CTS_V].ShowSLI = true;
+  ViewLayout[ID_CTS_V].SpeedPosX = 0;
+  ViewLayout[ID_CTS_V].SpeedPosY = 75;
+  ViewLayout[ID_CTS_V].ShowSpeed = true;
+  ViewLayout[ID_CTS_V].WaterTempPosX = 0;
+  ViewLayout[ID_CTS_V].WaterTempPosY = 190;
+  ViewLayout[ID_CTS_V].ShowWaterTemp = true;
+
+  ViewWarning[ID_CTS_V].Fuel = 80;
+  ViewWarning[ID_CTS_V].RPM = 288;     // 7200 / RPMscale
+  ViewWarning[ID_CTS_V].SLI[0] = 5600;
+  ViewWarning[ID_CTS_V].SLI[1] = 6200;
+  ViewWarning[ID_CTS_V].SLI[2] = 6800;
+  ViewWarning[ID_CTS_V].SLI[3] = 7200;
+  ViewWarning[ID_CTS_V].WaterTemp = 110;
+
+  // MX-5 NC
+  ViewLayout[ID_MX5_NC].CarName[0] = 'M';
+  ViewLayout[ID_MX5_NC].CarName[1] = 'X';
+  ViewLayout[ID_MX5_NC].CarName[2] = '5';
+  ViewLayout[ID_MX5_NC].CarName[3] = ' ';
+  ViewLayout[ID_MX5_NC].CarName[4] = 'N';
+  ViewLayout[ID_MX5_NC].CarName[5] = 'C';
+  ViewLayout[ID_MX5_NC].CarName[6] = 0;
+  ViewLayout[ID_MX5_NC].FuelPosX = 0;
+  ViewLayout[ID_MX5_NC].FuelPosY = 150;
+  ViewLayout[ID_MX5_NC].ShowFuel = true;
+  ViewLayout[ID_MX5_NC].GearPosX = 280;
+  ViewLayout[ID_MX5_NC].GearPosY = 65;
+  ViewLayout[ID_MX5_NC].ShowGear = true;
+  ViewLayout[ID_MX5_NC].RPMPosY = 25;
+  ViewLayout[ID_MX5_NC].RPMscale = 22.8125;  // 7300 / 320
+  ViewLayout[ID_MX5_NC].ShowRPM = true;
+  ViewLayout[ID_MX5_NC].SLIPosY = 0;
+  ViewLayout[ID_MX5_NC].ShowSLI = true;
+  ViewLayout[ID_MX5_NC].SpeedPosX = 0;
+  ViewLayout[ID_MX5_NC].SpeedPosY = 75;
+  ViewLayout[ID_MX5_NC].ShowSpeed = true;
+  ViewLayout[ID_MX5_NC].WaterTempPosX = 0;
+  ViewLayout[ID_MX5_NC].WaterTempPosY = 190;
+  ViewLayout[ID_MX5_NC].ShowWaterTemp = true;
+
+  ViewWarning[ID_MX5_NC].Fuel = 40;
+  ViewWarning[ID_MX5_NC].RPM = 296;     // 6750 / RPMscale
+  ViewWarning[ID_MX5_NC].SLI[0] = 6000;
+  ViewWarning[ID_MX5_NC].SLI[1] = 6250;
+  ViewWarning[ID_MX5_NC].SLI[2] = 6500;
+  ViewWarning[ID_MX5_NC].SLI[3] = 6750;
+  ViewWarning[ID_MX5_NC].WaterTemp = 100;
+
+  // MX-5 ND
+  ViewLayout[ID_MX5_ND].CarName[0] = 'M';
+  ViewLayout[ID_MX5_ND].CarName[1] = 'X';
+  ViewLayout[ID_MX5_ND].CarName[2] = '5';
+  ViewLayout[ID_MX5_ND].CarName[3] = ' ';
+  ViewLayout[ID_MX5_ND].CarName[4] = 'N';
+  ViewLayout[ID_MX5_ND].CarName[5] = 'D';
+  ViewLayout[ID_MX5_ND].CarName[6] = 0;
+  ViewLayout[ID_MX5_ND].FuelPosX = 0;
+  ViewLayout[ID_MX5_ND].FuelPosY = 150;
+  ViewLayout[ID_MX5_ND].ShowFuel = true;
+  ViewLayout[ID_MX5_ND].GearPosX = 280;
+  ViewLayout[ID_MX5_ND].GearPosY = 65;
+  ViewLayout[ID_MX5_ND].ShowGear = true;
+  ViewLayout[ID_MX5_ND].RPMPosY = 25;
+  ViewLayout[ID_MX5_ND].RPMscale = 22.8125;  // 7300 / 320
+  ViewLayout[ID_MX5_ND].ShowRPM = true;
+  ViewLayout[ID_MX5_ND].SLIPosY = 0;
+  ViewLayout[ID_MX5_ND].ShowSLI = true;
+  ViewLayout[ID_MX5_ND].SpeedPosX = 0;
+  ViewLayout[ID_MX5_ND].SpeedPosY = 75;
+  ViewLayout[ID_MX5_ND].ShowSpeed = true;
+  ViewLayout[ID_MX5_ND].WaterTempPosX = 0;
+  ViewLayout[ID_MX5_ND].WaterTempPosY = 190;
+  ViewLayout[ID_MX5_ND].ShowWaterTemp = true;
+
+  ViewWarning[ID_MX5_ND].Fuel = 40;
+  ViewWarning[ID_MX5_ND].RPM = 281;     // 6400 / RPMscale
+  ViewWarning[ID_MX5_ND].SLI[0] = 5000;
+  ViewWarning[ID_MX5_ND].SLI[1] = 5400;
+  ViewWarning[ID_MX5_ND].SLI[2] = 5800;
+  ViewWarning[ID_MX5_ND].SLI[3] = 6400;
+  ViewWarning[ID_MX5_ND].WaterTemp = 100;
+
+  // upload the button layout
   // use the formula to determine button outline: (x*80)+10, (y*54)+30, 60, 36)
   // x and y is the position in the 4x4 matrix
-  buttons[0] = myButtons.addButton( 10,  30, 60,  36, ViewLayout[0].CarName); // x = 0; y = 0
-
-  // 1: CTS-V
-  ViewLayout[1].CarName[0] = 'C';
-  ViewLayout[1].CarName[1] = 'T';
-  ViewLayout[1].CarName[2] = 'S';
-  ViewLayout[1].CarName[3] = '-';
-  ViewLayout[1].CarName[4] = 'V';
-  ViewLayout[1].CarName[5] = 0;
-  ViewLayout[1].CarName[6] = 0;
-  ViewLayout[1].FuelPosX = 0;
-  ViewLayout[1].FuelPosY = 150;
-  ViewLayout[1].ShowFuel = true;
-  ViewLayout[1].GearPosX = 280;
-  ViewLayout[1].GearPosY = 65;
-  ViewLayout[1].ShowGear = true;
-  ViewLayout[1].RPMPosY = 25;
-  ViewLayout[1].RPMscale = 25;  // 8000 / 320
-  ViewLayout[1].ShowRPM = true;
-  ViewLayout[1].SLIPosY = 0;
-  ViewLayout[1].ShowSLI = true;
-  ViewLayout[1].SpeedPosX = 0;
-  ViewLayout[1].SpeedPosY = 75;
-  ViewLayout[1].ShowSpeed = true;
-  ViewLayout[1].WaterTempPosX = 0;
-  ViewLayout[1].WaterTempPosY = 190;
-  ViewLayout[1].ShowWaterTemp = true;
-
-  ViewWarning[1].Fuel = 80;
-  ViewWarning[1].RPM = 288;     // 7200 / RPMscale
-  ViewWarning[1].SLI[0] = 5600;
-  ViewWarning[1].SLI[1] = 6200;
-  ViewWarning[1].SLI[2] = 6800;
-  ViewWarning[1].SLI[3] = 7200;
-  ViewWarning[1].WaterTemp = 110;
-
-  // use the formula to determine button outline: (x*80)+10, (y*54)+30, 60, 36)
-  // x and y is the position in the 4x4 matrix
-  buttons[1] = myButtons.addButton( 90,  30, 60,  36, ViewLayout[1].CarName); // x = 1; y = 0
-
-  // 2: MX-5
-  ViewLayout[2].CarName[0] = 'M';
-  ViewLayout[2].CarName[1] = 'X';
-  ViewLayout[2].CarName[2] = '-';
-  ViewLayout[2].CarName[3] = '5';
-  ViewLayout[2].CarName[4] = 0;
-  ViewLayout[2].CarName[5] = 0;
-  ViewLayout[2].CarName[6] = 0;
-  ViewLayout[2].FuelPosX = 0;
-  ViewLayout[2].FuelPosY = 150;
-  ViewLayout[2].ShowFuel = true;
-  ViewLayout[2].GearPosX = 280;
-  ViewLayout[2].GearPosY = 65;
-  ViewLayout[2].ShowGear = true;
-  ViewLayout[2].RPMPosY = 25;
-  ViewLayout[2].RPMscale = 22.8125;  // 7300 / 320
-  ViewLayout[2].ShowRPM = true;
-  ViewLayout[2].SLIPosY = 0;
-  ViewLayout[2].ShowSLI = true;
-  ViewLayout[2].SpeedPosX = 0;
-  ViewLayout[2].SpeedPosY = 75;
-  ViewLayout[2].ShowSpeed = true;
-  ViewLayout[2].WaterTempPosX = 0;
-  ViewLayout[2].WaterTempPosY = 190;
-  ViewLayout[2].ShowWaterTemp = true;
-
-  ViewWarning[2].Fuel = 40;
-  ViewWarning[2].RPM = 296;     // 6750 / RPMscale
-  ViewWarning[2].SLI[0] = 6000;
-  ViewWarning[2].SLI[1] = 6250;
-  ViewWarning[2].SLI[2] = 6500;
-  ViewWarning[2].SLI[3] = 6750;
-  ViewWarning[2].WaterTemp = 100;
-
-  // use the formula to determine button outline: (x*80)+10, (y*54)+30, 60, 36)
-  // x and y is the position in the 4x4 matrix
-  buttons[2] = myButtons.addButton( 170,  30, 60,  36, ViewLayout[2].CarName);  // x = 2; y = 0
+  for (int i=0; i<NumOfCars; i++)
+    buttons[i] = myButtons.addButton( ((i%4)*80)+10, ((i/4)*54)+30, 60,  36, ViewLayout[i].CarName);
 }
 
 // draw the background for the selected car, draw only the active instruments
@@ -281,8 +315,7 @@ void DrawBackground(char ID)
     myGLCD.setFont(SmallFont);  // 8x12 pixel
     switch (ID)
     {
-      case 0:
-        // Skippy
+      case ID_Skippy:
         myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+35, ViewWarning[ID].RPM-1, ViewLayout[ID].RPMPosY+35);  // horizontal green line
         myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+24, 0, ViewLayout[ID].RPMPosY+34);      // 0 rmp mark
         myGLCD.drawLine(97, ViewLayout[ID].RPMPosY+28, 97, ViewLayout[ID].RPMPosY+34);    // 2000 rpm mark
@@ -295,8 +328,7 @@ void DrawBackground(char ID)
         myGLCD.drawLine(ViewWarning[ID].RPM, ViewLayout[ID].RPMPosY+35, 319, ViewLayout[ID].RPMPosY+35);  // horizontal red line
         break;
 
-      case 1:
-        // CTS-V
+      case ID_CTS_V:
         myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+35, ViewWarning[ID].RPM-1, ViewLayout[ID].RPMPosY+35);  // horizontal green line
         myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+24, 0, ViewLayout[ID].RPMPosY+34);      // 0 rmp mark
         myGLCD.drawLine(80, ViewLayout[ID].RPMPosY+28, 80, ViewLayout[ID].RPMPosY+34);    // 2000 rpm mark
@@ -311,8 +343,7 @@ void DrawBackground(char ID)
         myGLCD.drawLine(ViewWarning[ID].RPM, ViewLayout[ID].RPMPosY+35, 319, ViewLayout[ID].RPMPosY+35);  // horizontal red line
         break;
 
-      case 2:
-        // MX-5
+      case ID_MX5_NC:
         myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+35, ViewWarning[ID].RPM-1, ViewLayout[ID].RPMPosY+35);  // horizontal green line
         myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+24, 0, ViewLayout[ID].RPMPosY+34);      // 0 rmp mark
         myGLCD.drawLine(88, ViewLayout[ID].RPMPosY+28, 88, ViewLayout[ID].RPMPosY+34);    // 2000 rpm mark
@@ -325,6 +356,20 @@ void DrawBackground(char ID)
         myGLCD.print("70", 299, ViewLayout[ID].RPMPosY+22);        // 7000 rpm mark -8 pixel
         myGLCD.drawLine(ViewWarning[ID].RPM, ViewLayout[ID].RPMPosY+35, 319, ViewLayout[ID].RPMPosY+35);  // horizontal red line
         break;
+
+      case ID_MX5_ND:
+        myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+35, ViewWarning[ID].RPM-1, ViewLayout[ID].RPMPosY+35);  // horizontal green line
+        myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+24, 0, ViewLayout[ID].RPMPosY+34);      // 0 rmp mark
+        myGLCD.drawLine(88, ViewLayout[ID].RPMPosY+28, 88, ViewLayout[ID].RPMPosY+34);    // 2000 rpm mark
+        myGLCD.drawLine(175, ViewLayout[ID].RPMPosY+28, 175, ViewLayout[ID].RPMPosY+34);  // 4000 rpm mark
+        myGLCD.drawLine(263, ViewLayout[ID].RPMPosY+28, 263, ViewLayout[ID].RPMPosY+34);  // 6000 rpm mark
+        myGLCD.print("10", 36, ViewLayout[ID].RPMPosY+22);         // 1000 rpm mark -8 pixel
+        myGLCD.print("30", 124, ViewLayout[ID].RPMPosY+22);        // 3000 rpm mark -8 pixel
+        myGLCD.print("50", 211, ViewLayout[ID].RPMPosY+22);        // 5000 rpm mark -8 pixel
+        myGLCD.setColor(wc_r, wc_g, wc_b);
+        myGLCD.print("70", 299, ViewLayout[ID].RPMPosY+22);        // 7000 rpm mark -8 pixel
+        myGLCD.drawLine(ViewWarning[ID].RPM, ViewLayout[ID].RPMPosY+35, 319, ViewLayout[ID].RPMPosY+35);  // horizontal red line
+        break;        
     }
   }
 
