@@ -5,8 +5,8 @@
 #define ScreenWidth 319 // width of the display in pixels -1
 
 // define car identification numbers
-#define NumOfCars 4     // number of car profiles
-#define DefaultCar 0    // default car profile (numbering starts with 0)
+#define NumOfCars 4     // number of car profiles, maximum is 16
+#define DefaultCar 0    // car profile to show at startup
 #define ID_Skippy 0
 #define ID_CTS_V  1
 #define ID_MX5_NC 2
@@ -58,10 +58,21 @@ UTouch  myTouch(6, 5, 4, 3, 2);
 // Finally we set up UTFT_Buttons :)
 UTFT_Buttons  myButtons(&myGLCD, &myTouch);
 
+// bit fields of engine warnings for reference
+/*enum irsdk_EngineWarnings 
+{
+  irsdk_waterTempWarning    = 0x01,
+  irsdk_fuelPressureWarning = 0x02,
+  irsdk_oilPressureWarning  = 0x04,
+  irsdk_engineStalled     = 0x08,
+  irsdk_pitSpeedLimiter   = 0x10,
+  irsdk_revLimiterActive    = 0x20,
+}*/
+
 // structure of the incoming serial data block
 struct SIncomingData
 {
-  //char EngineWarnings;
+  char EngineWarnings;
   float Fuel;
   char Gear;
   bool IsOnTrack;
@@ -73,7 +84,7 @@ struct SIncomingData
 // structure to store the actual and the previous screen data
 struct SViewData
 {
-  //char EngineWarnings;
+  char EngineWarnings;
   int Fuel;
   char Gear;
   int RPMgauge;
@@ -85,6 +96,9 @@ struct SViewData
 // structure to store the screen layout of the gauges
 struct SScreenLayout
 {
+  int EngineWarningsPosX;
+  int EngineWarningsPosY;
+  bool ShowEngineWarnings;
   int FuelPosX;
   int FuelPosY;
   bool ShowFuel;
@@ -129,6 +143,7 @@ SWarnings ViewWarning[NumOfCars];     // store warning limits for each car
 // clear our internal data block
 void ResetInternalData()
 {
+  Screen[0].EngineWarnings = 0;
   Screen[0].Fuel = 0;
   Screen[0].Gear = -1;
   Screen[0].RPMgauge = 0;
@@ -149,6 +164,9 @@ void UploadCarProfiles()
   ViewLayout[ID_Skippy].CarName[4] = 'p';
   ViewLayout[ID_Skippy].CarName[5] = 'y';
   ViewLayout[ID_Skippy].CarName[6] = 0;
+  ViewLayout[ID_Skippy].EngineWarningsPosX = 0;
+  ViewLayout[ID_Skippy].EngineWarningsPosY = 223;
+  ViewLayout[ID_Skippy].ShowEngineWarnings = true;
   ViewLayout[ID_Skippy].FuelPosX = 0;
   ViewLayout[ID_Skippy].FuelPosY = 150;
   ViewLayout[ID_Skippy].ShowFuel = true;
@@ -183,6 +201,9 @@ void UploadCarProfiles()
   ViewLayout[ID_CTS_V].CarName[4] = 'V';
   ViewLayout[ID_CTS_V].CarName[5] = 0;
   ViewLayout[ID_CTS_V].CarName[6] = 0;
+  ViewLayout[ID_CTS_V].EngineWarningsPosX = 0;
+  ViewLayout[ID_CTS_V].EngineWarningsPosY = 223;
+  ViewLayout[ID_CTS_V].ShowEngineWarnings = true;
   ViewLayout[ID_CTS_V].FuelPosX = 0;
   ViewLayout[ID_CTS_V].FuelPosY = 150;
   ViewLayout[ID_CTS_V].ShowFuel = true;
@@ -217,6 +238,9 @@ void UploadCarProfiles()
   ViewLayout[ID_MX5_NC].CarName[4] = 'N';
   ViewLayout[ID_MX5_NC].CarName[5] = 'C';
   ViewLayout[ID_MX5_NC].CarName[6] = 0;
+  ViewLayout[ID_MX5_NC].EngineWarningsPosX = 0;
+  ViewLayout[ID_MX5_NC].EngineWarningsPosY = 223;
+  ViewLayout[ID_MX5_NC].ShowEngineWarnings = true;
   ViewLayout[ID_MX5_NC].FuelPosX = 0;
   ViewLayout[ID_MX5_NC].FuelPosY = 150;
   ViewLayout[ID_MX5_NC].ShowFuel = true;
@@ -251,6 +275,9 @@ void UploadCarProfiles()
   ViewLayout[ID_MX5_ND].CarName[4] = 'N';
   ViewLayout[ID_MX5_ND].CarName[5] = 'D';
   ViewLayout[ID_MX5_ND].CarName[6] = 0;
+  ViewLayout[ID_MX5_ND].EngineWarningsPosX = 0;
+  ViewLayout[ID_MX5_ND].EngineWarningsPosY = 223;
+  ViewLayout[ID_MX5_ND].ShowEngineWarnings = true;
   ViewLayout[ID_MX5_ND].FuelPosX = 0;
   ViewLayout[ID_MX5_ND].FuelPosY = 150;
   ViewLayout[ID_MX5_ND].ShowFuel = true;
@@ -291,6 +318,11 @@ void DrawBackground(char ID)
   myGLCD.setFont(BigFont);
   myGLCD.setColor(dc_r, dc_g, dc_b);
 
+  if(ViewLayout[ID].ShowEngineWarnings == true)
+  {
+    myGLCD.print("Warnings:", ViewLayout[ID].EngineWarningsPosX, ViewLayout[ID].EngineWarningsPosY);
+  }
+  
   if(ViewLayout[ID].ShowFuel == true)
   {
     myGLCD.print("Fuel:", ViewLayout[ID].FuelPosX, ViewLayout[ID].FuelPosY);
@@ -377,6 +409,32 @@ void DrawBackground(char ID)
   myGLCD.setFont(SmallFont);
   myGLCD.setColor(dc_r, dc_g, dc_b);
   myGLCD.print(ViewLayout[ID].CarName, 271, 227);
+}
+
+// draw the engine warning icons
+void DrawEngineWarnings(char ID, char Warning, char WarningPrev)
+{
+  myGLCD.setFont(BigFont);
+  myGLCD.setColor(dc_r, dc_g, dc_b);
+
+  // draw left justified
+  myGLCD.printNumI(Warning, ViewLayout[ID].EngineWarningsPosX+160, ViewLayout[ID].EngineWarningsPosY);
+  myGLCD.setColor(0, 0, 0);
+  if (Warning < 100 && Warning > 9)
+  {
+    if (WarningPrev>99)
+    {
+      myGLCD.fillRect(ViewLayout[ID].EngineWarningsPosX+192, ViewLayout[ID].EngineWarningsPosY, ViewLayout[ID].EngineWarningsPosX+208, ViewLayout[ID].EngineWarningsPosY+16);
+    }
+  }
+  
+  if (Warning < 10)
+  {
+    if (WarningPrev>9)
+    {
+    myGLCD.fillRect(ViewLayout[ID].EngineWarningsPosX+176, ViewLayout[ID].EngineWarningsPosY, ViewLayout[ID].EngineWarningsPosX+208, ViewLayout[ID].EngineWarningsPosY+16);
+    }
+  }
 }
 
 // draw fuel gauge
@@ -633,6 +691,10 @@ void loop()
                 // draw screen and draw only activated gauges
                 blockpos = 0; // reset block position
 
+                // draw Engine Warning lights
+                Screen[1].EngineWarnings = InData->EngineWarnings;
+                if (Screen[0].EngineWarnings != Screen[1].EngineWarnings && ViewLayout[ActiveCar].ShowEngineWarnings == true) DrawEngineWarnings(ActiveCar, Screen[1].EngineWarnings, Screen[0].EngineWarnings);
+
                 // draw RPM gauge
                 Screen[1].RPMgauge = (int)(InData->RPM / ViewLayout[ActiveCar].RPMscale);
                 if (Screen[1].RPMgauge > ScreenWidth) Screen[1].RPMgauge = ScreenWidth;  // limit RPM gauge to maximum display width
@@ -666,6 +728,7 @@ void loop()
                 if (Screen[0].SLI != Screen[1].SLI && ViewLayout[ActiveCar].ShowSLI == true) DrawSLI(ActiveCar, Screen[1].SLI, Screen[0].SLI);
 
                 // update old screen data
+                Screen[0].EngineWarnings = Screen[1].EngineWarnings;
                 Screen[0].Fuel      = Screen[1].Fuel;
                 Screen[0].Gear      = InData->Gear;
                 Screen[0].RPMgauge  = Screen[1].RPMgauge;
