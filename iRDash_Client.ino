@@ -28,6 +28,18 @@ extern uint8_t SmallFont[];        // 8x12 pixel
 extern uint8_t BigFont[];          // 16x16 pixel
 extern uint8_t SevenSegNumFont[];  // 32x50 pixel
 
+// declare the bitmaps
+extern unsigned int fuelpressure_nok[0x400];
+extern unsigned int fuelpressure_ok[0x400];
+extern unsigned int oilpressure_nok[0x400];
+extern unsigned int oilpressure_ok[0x400];
+extern unsigned int pitspeedlimiter_off[0x400];
+extern unsigned int pitspeedlimiter_on[0x400];
+extern unsigned int stall_off[0x400];
+extern unsigned int stall_on[0x400];
+extern unsigned int water_nok[0x400];
+extern unsigned int water_ok[0x400];
+
 // Set the pins to the correct ones for your development shield
 // ------------------------------------------------------------
 // Arduino Uno / 2009:
@@ -72,7 +84,7 @@ UTFT_Buttons  myButtons(&myGLCD, &myTouch);
 // structure of the incoming serial data block
 struct SIncomingData
 {
-  char EngineWarnings;
+  byte EngineWarnings;
   float Fuel;
   char Gear;
   bool IsOnTrack;
@@ -84,7 +96,7 @@ struct SIncomingData
 // structure to store the actual and the previous screen data
 struct SViewData
 {
-  char EngineWarnings;
+  byte EngineWarnings;
   int Fuel;
   char Gear;
   int RPMgauge;
@@ -128,13 +140,13 @@ struct SWarnings
   int SLI[4];     // RPM values for each SLI light (in RPM)
 };
 
-char inByte;                  // incoming byte from the serial port
+byte inByte;                  // incoming byte from the serial port
 int blockpos;                 // position of the actual incoming byte in the telemetry data block
 SIncomingData* InData;        // pointer to access the telemetry data as a structure
-char* pInData;                // pointer to access the telemetry data as a byte array
+byte* pInData;                // pointer to access the telemetry data as a byte array
 SViewData Screen[2];          // store the actual and the previous screen data
 int buttons[NumOfCars];       // handle for the touch buttons
-char ActiveCar;               // active car profile
+byte ActiveCar;               // active car profile
 
 // variables to manage screen layout
 SScreenLayout ViewLayout[NumOfCars];  // store screen layout for each car
@@ -165,7 +177,7 @@ void UploadCarProfiles()
   ViewLayout[ID_Skippy].CarName[5] = 'y';
   ViewLayout[ID_Skippy].CarName[6] = 0;
   ViewLayout[ID_Skippy].EngineWarningsPosX = 0;
-  ViewLayout[ID_Skippy].EngineWarningsPosY = 223;
+  ViewLayout[ID_Skippy].EngineWarningsPosY = 207;
   ViewLayout[ID_Skippy].ShowEngineWarnings = true;
   ViewLayout[ID_Skippy].FuelPosX = 0;
   ViewLayout[ID_Skippy].FuelPosY = 150;
@@ -182,7 +194,7 @@ void UploadCarProfiles()
   ViewLayout[ID_Skippy].SpeedPosY = 75;
   ViewLayout[ID_Skippy].ShowSpeed = true;
   ViewLayout[ID_Skippy].WaterTempPosX = 0;
-  ViewLayout[ID_Skippy].WaterTempPosY = 190;
+  ViewLayout[ID_Skippy].WaterTempPosY = 182;
   ViewLayout[ID_Skippy].ShowWaterTemp = true;
 
   ViewWarning[ID_Skippy].Fuel = 25;
@@ -202,7 +214,7 @@ void UploadCarProfiles()
   ViewLayout[ID_CTS_V].CarName[5] = 0;
   ViewLayout[ID_CTS_V].CarName[6] = 0;
   ViewLayout[ID_CTS_V].EngineWarningsPosX = 0;
-  ViewLayout[ID_CTS_V].EngineWarningsPosY = 223;
+  ViewLayout[ID_CTS_V].EngineWarningsPosY = 207;
   ViewLayout[ID_CTS_V].ShowEngineWarnings = true;
   ViewLayout[ID_CTS_V].FuelPosX = 0;
   ViewLayout[ID_CTS_V].FuelPosY = 150;
@@ -219,7 +231,7 @@ void UploadCarProfiles()
   ViewLayout[ID_CTS_V].SpeedPosY = 75;
   ViewLayout[ID_CTS_V].ShowSpeed = true;
   ViewLayout[ID_CTS_V].WaterTempPosX = 0;
-  ViewLayout[ID_CTS_V].WaterTempPosY = 190;
+  ViewLayout[ID_CTS_V].WaterTempPosY = 182;
   ViewLayout[ID_CTS_V].ShowWaterTemp = true;
 
   ViewWarning[ID_CTS_V].Fuel = 80;
@@ -239,7 +251,7 @@ void UploadCarProfiles()
   ViewLayout[ID_MX5_NC].CarName[5] = 'C';
   ViewLayout[ID_MX5_NC].CarName[6] = 0;
   ViewLayout[ID_MX5_NC].EngineWarningsPosX = 0;
-  ViewLayout[ID_MX5_NC].EngineWarningsPosY = 223;
+  ViewLayout[ID_MX5_NC].EngineWarningsPosY = 207;
   ViewLayout[ID_MX5_NC].ShowEngineWarnings = true;
   ViewLayout[ID_MX5_NC].FuelPosX = 0;
   ViewLayout[ID_MX5_NC].FuelPosY = 150;
@@ -256,7 +268,7 @@ void UploadCarProfiles()
   ViewLayout[ID_MX5_NC].SpeedPosY = 75;
   ViewLayout[ID_MX5_NC].ShowSpeed = true;
   ViewLayout[ID_MX5_NC].WaterTempPosX = 0;
-  ViewLayout[ID_MX5_NC].WaterTempPosY = 190;
+  ViewLayout[ID_MX5_NC].WaterTempPosY = 182;
   ViewLayout[ID_MX5_NC].ShowWaterTemp = true;
 
   ViewWarning[ID_MX5_NC].Fuel = 40;
@@ -276,7 +288,7 @@ void UploadCarProfiles()
   ViewLayout[ID_MX5_ND].CarName[5] = 'D';
   ViewLayout[ID_MX5_ND].CarName[6] = 0;
   ViewLayout[ID_MX5_ND].EngineWarningsPosX = 0;
-  ViewLayout[ID_MX5_ND].EngineWarningsPosY = 223;
+  ViewLayout[ID_MX5_ND].EngineWarningsPosY = 207;
   ViewLayout[ID_MX5_ND].ShowEngineWarnings = true;
   ViewLayout[ID_MX5_ND].FuelPosX = 0;
   ViewLayout[ID_MX5_ND].FuelPosY = 150;
@@ -293,7 +305,7 @@ void UploadCarProfiles()
   ViewLayout[ID_MX5_ND].SpeedPosY = 75;
   ViewLayout[ID_MX5_ND].ShowSpeed = true;
   ViewLayout[ID_MX5_ND].WaterTempPosX = 0;
-  ViewLayout[ID_MX5_ND].WaterTempPosY = 190;
+  ViewLayout[ID_MX5_ND].WaterTempPosY = 182;
   ViewLayout[ID_MX5_ND].ShowWaterTemp = true;
 
   ViewWarning[ID_MX5_ND].Fuel = 40;
@@ -304,7 +316,7 @@ void UploadCarProfiles()
   ViewWarning[ID_MX5_ND].SLI[3] = 6400;
   ViewWarning[ID_MX5_ND].WaterTemp = 100;
 
-  // upload the button layout
+  // upload the button layout of car selection menu
   // use the formula to determine button outline: (x*80)+10, (y*54)+30, 60, 36)
   // x and y is the position in the 4x4 matrix
   for (int i=0; i<NumOfCars; i++)
@@ -312,7 +324,7 @@ void UploadCarProfiles()
 }
 
 // draw the background for the selected car, draw only the active instruments
-void DrawBackground(char ID)
+void DrawBackground(byte ID)
 {
   myGLCD.clrScr();
   myGLCD.setFont(BigFont);
@@ -320,7 +332,13 @@ void DrawBackground(char ID)
 
   if(ViewLayout[ID].ShowEngineWarnings == true)
   {
-    myGLCD.print("Warnings:", ViewLayout[ID].EngineWarningsPosX, ViewLayout[ID].EngineWarningsPosY);
+    // draw the off state warning lights
+    myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +0, ViewLayout[ID].EngineWarningsPosY, 32, 32, fuelpressure_ok);
+    myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +32, ViewLayout[ID].EngineWarningsPosY, 32, 32, oilpressure_ok);
+    myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +64, ViewLayout[ID].EngineWarningsPosY, 32, 32, water_ok);
+    myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +96, ViewLayout[ID].EngineWarningsPosY, 32, 32, pitspeedlimiter_off);
+    myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +128, ViewLayout[ID].EngineWarningsPosY, 32, 32, stall_off);
+    
   }
   
   if(ViewLayout[ID].ShowFuel == true)
@@ -412,33 +430,63 @@ void DrawBackground(char ID)
 }
 
 // draw the engine warning icons
-void DrawEngineWarnings(char ID, char Warning, char WarningPrev)
+void DrawEngineWarnings(byte ID, byte Warning, byte WarningPrev)
 {
-  myGLCD.setFont(BigFont);
-  myGLCD.setColor(dc_r, dc_g, dc_b);
-
-  // draw left justified
-  myGLCD.printNumI(Warning, ViewLayout[ID].EngineWarningsPosX+160, ViewLayout[ID].EngineWarningsPosY);
-  myGLCD.setColor(0, 0, 0);
-  if (Warning < 100 && Warning > 9)
-  {
-    if (WarningPrev>99)
-    {
-      myGLCD.fillRect(ViewLayout[ID].EngineWarningsPosX+192, ViewLayout[ID].EngineWarningsPosY, ViewLayout[ID].EngineWarningsPosX+208, ViewLayout[ID].EngineWarningsPosY+16);
-    }
-  }
+  byte Filtered, FilteredPrev;
   
-  if (Warning < 10)
+  // draw fuel pressure light
+  // check only the bit which contains this warning light
+  Filtered = Warning & 0x02;
+  FilteredPrev = WarningPrev & 0x02;
+  if (Filtered != FilteredPrev)
   {
-    if (WarningPrev>9)
-    {
-    myGLCD.fillRect(ViewLayout[ID].EngineWarningsPosX+176, ViewLayout[ID].EngineWarningsPosY, ViewLayout[ID].EngineWarningsPosX+208, ViewLayout[ID].EngineWarningsPosY+16);
-    }
+    if (Filtered != 0) myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +0, ViewLayout[ID].EngineWarningsPosY, 32, 32, fuelpressure_nok);
+    else myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +0, ViewLayout[ID].EngineWarningsPosY, 32, 32, fuelpressure_ok);
+  }
+
+  // draw oil pressure light
+  // check only the bit which contains this warning light
+  Filtered = Warning & 0x04;
+  FilteredPrev = WarningPrev & 0x04;
+  if (Filtered != FilteredPrev)
+  {
+    if (Filtered != 0) myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +32, ViewLayout[ID].EngineWarningsPosY, 32, 32, oilpressure_nok);
+    else myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +32, ViewLayout[ID].EngineWarningsPosY, 32, 32, oilpressure_ok);
+  }
+
+  // draw water temp light
+  // check only the bit which contains this warning light
+  Filtered = Warning & 0x01;
+  FilteredPrev = WarningPrev & 0x01;
+  if (Filtered != FilteredPrev)
+  {
+    if (Filtered != 0) myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +64, ViewLayout[ID].EngineWarningsPosY, 32, 32, water_nok);
+    else myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +64, ViewLayout[ID].EngineWarningsPosY, 32, 32, water_ok);
+  }
+
+  // draw pit speed limiter light
+  // check only the bit which contains this warning light
+  Filtered = Warning & 0x10;
+  FilteredPrev = WarningPrev & 0x10;
+  if (Filtered != FilteredPrev)
+  {
+    if (Filtered != 0) myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +96, ViewLayout[ID].EngineWarningsPosY, 32, 32, pitspeedlimiter_on);
+    else myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +96, ViewLayout[ID].EngineWarningsPosY, 32, 32, pitspeedlimiter_off);
+  }
+
+  // draw stall sign light
+  // check only the bit which contains this warning light
+  Filtered = Warning & 0x08;
+  FilteredPrev = WarningPrev & 0x08;
+  if (Filtered != FilteredPrev)
+  {
+    if (Filtered != 0) myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +128, ViewLayout[ID].EngineWarningsPosY, 32, 32, stall_on);
+    else myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +128, ViewLayout[ID].EngineWarningsPosY, 32, 32, stall_off);
   }
 }
 
 // draw fuel gauge
-void DrawFuel(char ID, int Fuel, int FuelPrev)
+void DrawFuel(byte ID, int Fuel, int FuelPrev)
 {
   myGLCD.setFont(BigFont);
   if (Fuel <= ViewWarning[ID].Fuel) myGLCD.setColor(wc_r, wc_g, wc_b);
@@ -470,7 +518,7 @@ void DrawFuel(char ID, int Fuel, int FuelPrev)
 }
 
 // draw gear number
-void DrawGear(char ID, char Gear)
+void DrawGear(byte ID, char Gear)
 {
   myGLCD.setFont(SevenSegNumFont);  // 32x50
   if (InData->Gear == -1)  // reverse gear
@@ -486,7 +534,7 @@ void DrawGear(char ID, char Gear)
 }
 
 // draw water temperature gauge
-void DrawWaterTemp(char ID, int WaterTemp, int WaterTempPrev)
+void DrawWaterTemp(byte ID, int WaterTemp, int WaterTempPrev)
 {
   myGLCD.setFont(BigFont);
   if (WaterTemp >= ViewWarning[ID].WaterTemp) myGLCD.setColor(wc_r, wc_g, wc_b);
@@ -514,7 +562,7 @@ void DrawWaterTemp(char ID, int WaterTemp, int WaterTempPrev)
 }
 
 // draw RPM gauge
-void DrawRPM(char ID, int RPM, int RPMPrev)
+void DrawRPM(byte ID, int RPM, int RPMPrev)
 {
   // RPM is bigger than the previous
   if (RPMPrev < RPM)
@@ -553,7 +601,7 @@ void DrawRPM(char ID, int RPM, int RPMPrev)
 }
 
 // draw speed gauge
-void DrawSpeed(char ID, int Speed, int SpeedPrev)
+void DrawSpeed(byte ID, int Speed, int SpeedPrev)
 {
   myGLCD.setFont(BigFont);
   myGLCD.setColor(dc_r, dc_g, dc_b);
@@ -579,7 +627,7 @@ void DrawSpeed(char ID, int Speed, int SpeedPrev)
 }
 
 // draw shift light indicator
-void DrawSLI(char ID, int SLI, int SLIPrev)
+void DrawSLI(byte ID, int SLI, int SLIPrev)
 {
   if (SLI < SLIPrev)
   {
@@ -650,7 +698,7 @@ void setup()
 
   // initialize internal variables
   InData = new SIncomingData;  // allocate the data structure of the telemetry data
-  pInData = (char*)InData;     // set the byte array pointer to the telemetry data
+  pInData = (byte*)InData;     // set the byte array pointer to the telemetry data
   ResetInternalData();
 
   UploadCarProfiles();
@@ -701,7 +749,8 @@ void loop()
                 if (Screen[0].RPMgauge != Screen[1].RPMgauge && ViewLayout[ActiveCar].ShowRPM == true) DrawRPM(ActiveCar, Screen[1].RPMgauge, Screen[0].RPMgauge);
 
                 // draw gear number
-                if (Screen[0].Gear != InData->Gear && ViewLayout[ActiveCar].ShowGear == true) DrawGear(ActiveCar, InData->Gear);
+                Screen[1].Gear = InData->Gear;
+                if (Screen[0].Gear != Screen[1].Gear && ViewLayout[ActiveCar].ShowGear == true) DrawGear(ActiveCar, Screen[1].Gear);
 
                 // draw fuel level gauge
                 Screen[1].Fuel = (int)(InData->Fuel*10); // convert float data to int and keep the first digit of the fractional part also
@@ -729,12 +778,12 @@ void loop()
 
                 // update old screen data
                 Screen[0].EngineWarnings = Screen[1].EngineWarnings;
-                Screen[0].Fuel      = Screen[1].Fuel;
-                Screen[0].Gear      = InData->Gear;
-                Screen[0].RPMgauge  = Screen[1].RPMgauge;
-                Screen[0].Speed     = Screen[1].Speed;
-                Screen[0].WaterTemp = Screen[1].WaterTemp;
-                Screen[0].SLI       = Screen[1].SLI;
+                Screen[0].Fuel           = Screen[1].Fuel;
+                Screen[0].Gear           = Screen[1].Gear;
+                Screen[0].RPMgauge       = Screen[1].RPMgauge;
+                Screen[0].Speed          = Screen[1].Speed;
+                Screen[0].WaterTemp      = Screen[1].WaterTemp;
+                Screen[0].SLI            = Screen[1].SLI;
   
                 // clear the incoming serial buffer which was filled up during the drawing, if it is not done then data misalignment can happen when we read the next telemetry block
                 inByte = Serial.available();
