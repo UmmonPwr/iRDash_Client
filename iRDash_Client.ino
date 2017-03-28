@@ -5,12 +5,13 @@
 #define ScreenWidth 319 // width of the display in pixels -1
 
 // define car identification numbers
-#define NumOfCars 4     // number of car profiles, maximum is 16
+#define NumOfCars 5     // number of car profiles, maximum is 16
 #define DefaultCar 0    // car profile to show at startup
 #define ID_Skippy 0
 #define ID_CTS_V  1
 #define ID_MX5_NC 2
 #define ID_MX5_ND 3
+#define ID_FR20   4
 
 // define the drawing colors
 #define dc_r 100  // default color
@@ -134,10 +135,10 @@ struct SScreenLayout
 // limits where different drawing color have to be used
 struct SWarnings
 {
-  int Fuel;           // value in liter * 10
-  int RPM;            // value where the redline starts in pixels
-  int WaterTemp;      // value in Celsius
-  int SLI[10][4];     // RPM values for each SLI light, indexes are 0:reverse, 1:neutral, 2:1st, 3:2nd, ...
+  int Fuel;                   // value in liter * 10
+  int RPM;                    // value where the redline starts in pixels
+  int WaterTemp;              // value in Celsius
+  int SLI[10][4];             // RPM values for each SLI light, indexes are 0:reverse, 1:neutral, 2:1st, 3:2nd, ...
 };
 
 byte inByte;                  // incoming byte from the serial port
@@ -428,6 +429,76 @@ void UploadCarProfiles()
   ViewWarning[ID_MX5_ND].SLI[7][2] = 5800;
   ViewWarning[ID_MX5_ND].SLI[7][3] = 6400;
 
+  // Formula Renault 2.0
+  ViewLayout[ID_FR20].CarName[0] = 'F';
+  ViewLayout[ID_FR20].CarName[1] = 'R';
+  ViewLayout[ID_FR20].CarName[2] = ' ';
+  ViewLayout[ID_FR20].CarName[3] = '2';
+  ViewLayout[ID_FR20].CarName[4] = '.';
+  ViewLayout[ID_FR20].CarName[5] = '0';
+  ViewLayout[ID_FR20].CarName[6] = 0;
+  ViewLayout[ID_FR20].EngineWarningsPosX = 0;
+  ViewLayout[ID_FR20].EngineWarningsPosY = 207;
+  ViewLayout[ID_FR20].ShowEngineWarnings = true;
+  ViewLayout[ID_FR20].FuelPosX = 0;
+  ViewLayout[ID_FR20].FuelPosY = 150;
+  ViewLayout[ID_FR20].ShowFuel = true;
+  ViewLayout[ID_FR20].GearPosX = 280;
+  ViewLayout[ID_FR20].GearPosY = 65;
+  ViewLayout[ID_FR20].ShowGear = true;
+  ViewLayout[ID_FR20].RPMPosY = 25;
+  ViewLayout[ID_FR20].RPMscale = 23.75;  // 7600 / 320
+  ViewLayout[ID_FR20].ShowRPM = true;
+  ViewLayout[ID_FR20].SLIPosY = 0;
+  ViewLayout[ID_FR20].ShowSLI = true;
+  ViewLayout[ID_FR20].SpeedPosX = 0;
+  ViewLayout[ID_FR20].SpeedPosY = 75;
+  ViewLayout[ID_FR20].ShowSpeed = true;
+  ViewLayout[ID_FR20].WaterTempPosX = 0;
+  ViewLayout[ID_FR20].WaterTempPosY = 182;
+  ViewLayout[ID_FR20].ShowWaterTemp = true;
+
+  ViewWarning[ID_FR20].Fuel = 40;
+  ViewWarning[ID_FR20].RPM = 307;           // 7300 / RPMscale
+  ViewWarning[ID_FR20].WaterTemp = 100;
+
+  ViewWarning[ID_FR20].SLI[0][0] = 6600;    // car has 7 forward gears
+  ViewWarning[ID_FR20].SLI[0][1] = 6800;
+  ViewWarning[ID_FR20].SLI[0][2] = 7000;
+  ViewWarning[ID_FR20].SLI[0][3] = 7300;
+  ViewWarning[ID_FR20].SLI[1][0] = 6600;
+  ViewWarning[ID_FR20].SLI[1][1] = 6800;
+  ViewWarning[ID_FR20].SLI[1][2] = 7000;
+  ViewWarning[ID_FR20].SLI[1][3] = 7300;
+  ViewWarning[ID_FR20].SLI[2][0] = 6600;
+  ViewWarning[ID_FR20].SLI[2][1] = 6800;
+  ViewWarning[ID_FR20].SLI[2][2] = 7000;
+  ViewWarning[ID_FR20].SLI[2][3] = 7300;
+  ViewWarning[ID_FR20].SLI[3][0] = 6600;
+  ViewWarning[ID_FR20].SLI[3][1] = 6800;
+  ViewWarning[ID_FR20].SLI[3][2] = 7000;
+  ViewWarning[ID_FR20].SLI[3][3] = 7300;
+  ViewWarning[ID_FR20].SLI[4][0] = 6600;
+  ViewWarning[ID_FR20].SLI[4][1] = 6800;
+  ViewWarning[ID_FR20].SLI[4][2] = 7000;
+  ViewWarning[ID_FR20].SLI[4][3] = 7300;
+  ViewWarning[ID_FR20].SLI[5][0] = 6600;
+  ViewWarning[ID_FR20].SLI[5][1] = 6800;
+  ViewWarning[ID_FR20].SLI[5][2] = 7000;
+  ViewWarning[ID_FR20].SLI[5][3] = 7300;
+  ViewWarning[ID_FR20].SLI[6][0] = 6600;
+  ViewWarning[ID_FR20].SLI[6][1] = 6800;
+  ViewWarning[ID_FR20].SLI[6][2] = 7000;
+  ViewWarning[ID_FR20].SLI[6][3] = 7300;
+  ViewWarning[ID_FR20].SLI[7][0] = 6600;
+  ViewWarning[ID_FR20].SLI[7][1] = 6800;
+  ViewWarning[ID_FR20].SLI[7][2] = 7000;
+  ViewWarning[ID_FR20].SLI[7][3] = 7300;
+  ViewWarning[ID_FR20].SLI[8][0] = 6600;
+  ViewWarning[ID_FR20].SLI[8][1] = 6800;
+  ViewWarning[ID_FR20].SLI[8][2] = 7000;
+  ViewWarning[ID_FR20].SLI[8][3] = 7300;
+
   // upload the button layout of car selection menu
   // use the formula to determine button outline: (x*80)+10, (y*54)+30, 60, 36)
   // x and y is the position in the 4x4 matrix
@@ -448,8 +519,8 @@ void DrawBackground(byte ID)
     myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +0, ViewLayout[ID].EngineWarningsPosY, 32, 32, fuelpressure_ok);
     myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +32, ViewLayout[ID].EngineWarningsPosY, 32, 32, oilpressure_ok);
     myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +64, ViewLayout[ID].EngineWarningsPosY, 32, 32, water_ok);
-    myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +96, ViewLayout[ID].EngineWarningsPosY, 32, 32, pitspeedlimiter_off);
-    myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +128, ViewLayout[ID].EngineWarningsPosY, 32, 32, stall_off);
+    myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +112, ViewLayout[ID].EngineWarningsPosY, 32, 32, pitspeedlimiter_off);
+    myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +144, ViewLayout[ID].EngineWarningsPosY, 32, 32, stall_off);
     
   }
   
@@ -531,7 +602,20 @@ void DrawBackground(byte ID)
         myGLCD.setColor(wc_r, wc_g, wc_b);
         myGLCD.print("70", 299, ViewLayout[ID].RPMPosY+22);        // 7000 rpm mark -8 pixel
         myGLCD.drawLine(ViewWarning[ID].RPM, ViewLayout[ID].RPMPosY+35, 319, ViewLayout[ID].RPMPosY+35);  // horizontal red line
-        break;        
+        break;
+
+      case ID_FR20:
+        myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+35, ViewWarning[ID].RPM-1, ViewLayout[ID].RPMPosY+35);  // horizontal green line
+        myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+24, 0, ViewLayout[ID].RPMPosY+34);      // 0 rmp mark
+        myGLCD.drawLine(88, ViewLayout[ID].RPMPosY+28, 88, ViewLayout[ID].RPMPosY+34);    // 2000 rpm mark
+        myGLCD.drawLine(175, ViewLayout[ID].RPMPosY+28, 175, ViewLayout[ID].RPMPosY+34);  // 4000 rpm mark
+        myGLCD.drawLine(263, ViewLayout[ID].RPMPosY+28, 263, ViewLayout[ID].RPMPosY+34);  // 6000 rpm mark
+        myGLCD.print("10", 36, ViewLayout[ID].RPMPosY+22);         // 1000 rpm mark -8 pixel
+        myGLCD.print("30", 124, ViewLayout[ID].RPMPosY+22);        // 3000 rpm mark -8 pixel
+        myGLCD.print("50", 211, ViewLayout[ID].RPMPosY+22);        // 5000 rpm mark -8 pixel
+        myGLCD.setColor(wc_r, wc_g, wc_b);
+        myGLCD.print("70", 299, ViewLayout[ID].RPMPosY+22);        // 7000 rpm mark -8 pixel
+        myGLCD.drawLine(ViewWarning[ID].RPM, ViewLayout[ID].RPMPosY+35, 319, ViewLayout[ID].RPMPosY+35);  // horizontal red line
     }
   }
 
@@ -582,8 +666,8 @@ void DrawEngineWarnings(byte ID, byte Warning, byte WarningPrev)
   FilteredPrev = WarningPrev & 0x10;
   if (Filtered != FilteredPrev)
   {
-    if (Filtered != 0) myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +96, ViewLayout[ID].EngineWarningsPosY, 32, 32, pitspeedlimiter_on);
-    else myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +96, ViewLayout[ID].EngineWarningsPosY, 32, 32, pitspeedlimiter_off);
+    if (Filtered != 0) myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +112, ViewLayout[ID].EngineWarningsPosY, 32, 32, pitspeedlimiter_on);
+    else myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +112, ViewLayout[ID].EngineWarningsPosY, 32, 32, pitspeedlimiter_off);
   }
 
   // draw stall sign light
@@ -592,8 +676,8 @@ void DrawEngineWarnings(byte ID, byte Warning, byte WarningPrev)
   FilteredPrev = WarningPrev & 0x08;
   if (Filtered != FilteredPrev)
   {
-    if (Filtered != 0) myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +128, ViewLayout[ID].EngineWarningsPosY, 32, 32, stall_on);
-    else myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +128, ViewLayout[ID].EngineWarningsPosY, 32, 32, stall_off);
+    if (Filtered != 0) myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +144, ViewLayout[ID].EngineWarningsPosY, 32, 32, stall_on);
+    else myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +144, ViewLayout[ID].EngineWarningsPosY, 32, 32, stall_off);
   }
 }
 
@@ -633,7 +717,7 @@ void DrawFuel(byte ID, int Fuel, int FuelPrev)
 void DrawGear(byte ID, char Gear)
 {
   myGLCD.setFont(SevenSegNumFont);  // 32x50
-  if (InData->Gear == -1)  // reverse gear
+  if (InData->Gear <= -1)  // reverse gear
   {
     myGLCD.setColor(wc_r, wc_g, wc_b);
     myGLCD.print("1", ViewLayout[ID].GearPosX, ViewLayout[ID].GearPosY);
