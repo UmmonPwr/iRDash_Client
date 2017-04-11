@@ -607,14 +607,14 @@ void DrawBackground(byte ID)
       case ID_FR20:
         myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+35, ViewWarning[ID].RPM-1, ViewLayout[ID].RPMPosY+35);  // horizontal green line
         myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+24, 0, ViewLayout[ID].RPMPosY+34);      // 0 rmp mark
-        myGLCD.drawLine(88, ViewLayout[ID].RPMPosY+28, 88, ViewLayout[ID].RPMPosY+34);    // 2000 rpm mark
-        myGLCD.drawLine(175, ViewLayout[ID].RPMPosY+28, 175, ViewLayout[ID].RPMPosY+34);  // 4000 rpm mark
-        myGLCD.drawLine(263, ViewLayout[ID].RPMPosY+28, 263, ViewLayout[ID].RPMPosY+34);  // 6000 rpm mark
-        myGLCD.print("10", 36, ViewLayout[ID].RPMPosY+22);         // 1000 rpm mark -8 pixel
-        myGLCD.print("30", 124, ViewLayout[ID].RPMPosY+22);        // 3000 rpm mark -8 pixel
-        myGLCD.print("50", 211, ViewLayout[ID].RPMPosY+22);        // 5000 rpm mark -8 pixel
+        myGLCD.drawLine(84, ViewLayout[ID].RPMPosY+28, 84, ViewLayout[ID].RPMPosY+34);    // 2000 rpm mark
+        myGLCD.drawLine(168, ViewLayout[ID].RPMPosY+28, 168, ViewLayout[ID].RPMPosY+34);  // 4000 rpm mark
+        myGLCD.drawLine(253, ViewLayout[ID].RPMPosY+28, 253, ViewLayout[ID].RPMPosY+34);  // 6000 rpm mark
+        myGLCD.print("10", 34, ViewLayout[ID].RPMPosY+22);         // 1000 rpm mark -8 pixel
+        myGLCD.print("30", 118, ViewLayout[ID].RPMPosY+22);        // 3000 rpm mark -8 pixel
+        myGLCD.print("50", 202, ViewLayout[ID].RPMPosY+22);        // 5000 rpm mark -8 pixel
+        myGLCD.print("70", 286, ViewLayout[ID].RPMPosY+22);        // 7000 rpm mark -8 pixel
         myGLCD.setColor(wc_r, wc_g, wc_b);
-        myGLCD.print("70", 299, ViewLayout[ID].RPMPosY+22);        // 7000 rpm mark -8 pixel
         myGLCD.drawLine(ViewWarning[ID].RPM, ViewLayout[ID].RPMPosY+35, 319, ViewLayout[ID].RPMPosY+35);  // horizontal red line
     }
   }
