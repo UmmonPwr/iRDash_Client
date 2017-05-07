@@ -1,12 +1,10 @@
 #include <UTFT.h>
-#include <UTouch.h>
+#include <URTouch.h>
 #include <UTFT_Buttons.h>
-
-#define ScreenWidth 319 // width of the display in pixels -1
 
 // define car identification numbers
 #define NumOfCars 5     // number of car profiles, maximum is 16
-#define DefaultCar 0    // car profile to show at startup
+#define DefaultCar 4    // car profile to show at startup
 #define ID_Skippy 0
 #define ID_CTS_V  1
 #define ID_MX5_NC 2
@@ -23,6 +21,9 @@
 #define wc_r 255  // warning color
 #define wc_g 100
 #define wc_b 100
+#define bc_r 70   // background color
+#define bc_g 180
+#define bc_b 70
 
 // declare which fonts we will be using
 extern uint8_t SmallFont[];        // 8x12 pixel
@@ -66,7 +67,7 @@ UTFT myGLCD(SSD1289, 38, 39, 40, 41);
 // Teensy 3.x TFT Test Board                   : 26,31,27,28,29
 // ElecHouse TFT LCD/SD Shield for Arduino Due : 25,26,27,29,30
 //
-UTouch  myTouch(6, 5, 4, 3, 2);
+URTouch  myTouch(6, 5, 4, 3, 2);
 
 // Finally we set up UTFT_Buttons :)
 UTFT_Buttons  myButtons(&myGLCD, &myTouch);
@@ -119,7 +120,6 @@ struct SScreenLayout
   int GearPosY;
   bool ShowGear;
   int RPMPosY;
-  float RPMscale;
   bool ShowRPM;
   int SLIPosY;
   bool ShowSLI;
@@ -129,14 +129,15 @@ struct SScreenLayout
   int WaterTempPosX;
   int WaterTempPosY;
   bool ShowWaterTemp;
-  char CarName[10];
 };
 
 // limits where different drawing color have to be used
-struct SWarnings
+struct SCarProfile
 {
+  char CarName[10];
   int Fuel;                   // value in liter * 10
   int RPM;                    // value where the redline starts in pixels
+  float RPMscale;             // actual RPM value is divided by this number to scale it to display coordinate
   int WaterTemp;              // value in Celsius
   int SLI[10][4];             // RPM values for each SLI light, indexes are 0:reverse, 1:neutral, 2:1st, 3:2nd, ...
 };
@@ -150,8 +151,8 @@ int buttons[NumOfCars];       // handle for the touch buttons
 byte ActiveCar;               // active car profile
 
 // variables to manage screen layout
-SScreenLayout ViewLayout[NumOfCars];  // store screen layout for each car
-SWarnings ViewWarning[NumOfCars];     // store warning limits for each car
+SScreenLayout ScreenLayout;            // store screen layout
+SCarProfile CarProfile[NumOfCars];     // store warning limits for each car
 
 // clear our internal data block
 void ResetInternalData()
@@ -167,462 +168,393 @@ void ResetInternalData()
 }
 
 // upload the screen layout and warning limits per car
-void UploadCarProfiles()
+void UploadProfiles()
 {
+  // upload gauge positions
+  ScreenLayout.EngineWarningsPosX = 0;
+  ScreenLayout.EngineWarningsPosY = 207;
+  ScreenLayout.ShowEngineWarnings = true;
+  ScreenLayout.FuelPosX = 0;
+  ScreenLayout.FuelPosY = 150;
+  ScreenLayout.ShowFuel = true;
+  ScreenLayout.GearPosX = 280;
+  ScreenLayout.GearPosY = 78;
+  ScreenLayout.ShowGear = true;
+  ScreenLayout.RPMPosY = 25;
+  ScreenLayout.ShowRPM = true;
+  ScreenLayout.SLIPosY = 0;
+  ScreenLayout.ShowSLI = true;
+  ScreenLayout.SpeedPosX = 0;
+  ScreenLayout.SpeedPosY = 75;
+  ScreenLayout.ShowSpeed = true;
+  ScreenLayout.WaterTempPosX = 0;
+  ScreenLayout.WaterTempPosY = 182;
+  ScreenLayout.ShowWaterTemp = true;
+
   // Skippy
-  ViewLayout[ID_Skippy].CarName[0] = 'S';
-  ViewLayout[ID_Skippy].CarName[1] = 'k';
-  ViewLayout[ID_Skippy].CarName[2] = 'i';
-  ViewLayout[ID_Skippy].CarName[3] = 'p';
-  ViewLayout[ID_Skippy].CarName[4] = 'p';
-  ViewLayout[ID_Skippy].CarName[5] = 'y';
-  ViewLayout[ID_Skippy].CarName[6] = 0;
-  ViewLayout[ID_Skippy].EngineWarningsPosX = 0;
-  ViewLayout[ID_Skippy].EngineWarningsPosY = 207;
-  ViewLayout[ID_Skippy].ShowEngineWarnings = true;
-  ViewLayout[ID_Skippy].FuelPosX = 0;
-  ViewLayout[ID_Skippy].FuelPosY = 150;
-  ViewLayout[ID_Skippy].ShowFuel = true;
-  ViewLayout[ID_Skippy].GearPosX = 280;
-  ViewLayout[ID_Skippy].GearPosY = 65;
-  ViewLayout[ID_Skippy].ShowGear = true;
-  ViewLayout[ID_Skippy].RPMPosY = 25;
-  ViewLayout[ID_Skippy].RPMscale = 20.625;  // 6600 / 320
-  ViewLayout[ID_Skippy].ShowRPM = true;
-  ViewLayout[ID_Skippy].SLIPosY = 0;
-  ViewLayout[ID_Skippy].ShowSLI = true;
-  ViewLayout[ID_Skippy].SpeedPosX = 0;
-  ViewLayout[ID_Skippy].SpeedPosY = 75;
-  ViewLayout[ID_Skippy].ShowSpeed = true;
-  ViewLayout[ID_Skippy].WaterTempPosX = 0;
-  ViewLayout[ID_Skippy].WaterTempPosY = 182;
-  ViewLayout[ID_Skippy].ShowWaterTemp = true;
+  CarProfile[ID_Skippy].CarName[0] = 'S';
+  CarProfile[ID_Skippy].CarName[1] = 'k';
+  CarProfile[ID_Skippy].CarName[2] = 'i';
+  CarProfile[ID_Skippy].CarName[3] = 'p';
+  CarProfile[ID_Skippy].CarName[4] = 'p';
+  CarProfile[ID_Skippy].CarName[5] = 'y';
+  CarProfile[ID_Skippy].CarName[6] = 0;
 
-  ViewWarning[ID_Skippy].Fuel = 25;
-  ViewWarning[ID_Skippy].RPM = 291;         // 6000 / RPMscale
-  ViewWarning[ID_Skippy].WaterTemp = 90;
+  CarProfile[ID_Skippy].Fuel = 25;
+  CarProfile[ID_Skippy].RPM = 291;          // 6000 / RPMscale
+  CarProfile[ID_Skippy].RPMscale = 20.625;  // 6600 / 320
+  CarProfile[ID_Skippy].WaterTemp = 90;
 
-  ViewWarning[ID_Skippy].SLI[0][0] = 4900;  // car has 5 forward gears
-  ViewWarning[ID_Skippy].SLI[0][1] = 5400;
-  ViewWarning[ID_Skippy].SLI[0][2] = 5800;
-  ViewWarning[ID_Skippy].SLI[0][3] = 6100;
-  ViewWarning[ID_Skippy].SLI[1][0] = 4900;
-  ViewWarning[ID_Skippy].SLI[1][1] = 5400;
-  ViewWarning[ID_Skippy].SLI[1][2] = 5800;
-  ViewWarning[ID_Skippy].SLI[1][3] = 6100;
-  ViewWarning[ID_Skippy].SLI[2][0] = 4900;
-  ViewWarning[ID_Skippy].SLI[2][1] = 5400;
-  ViewWarning[ID_Skippy].SLI[2][2] = 5800;
-  ViewWarning[ID_Skippy].SLI[2][3] = 6100;
-  ViewWarning[ID_Skippy].SLI[3][0] = 4900;
-  ViewWarning[ID_Skippy].SLI[3][1] = 5400;
-  ViewWarning[ID_Skippy].SLI[3][2] = 5800;
-  ViewWarning[ID_Skippy].SLI[3][3] = 6100;
-  ViewWarning[ID_Skippy].SLI[4][0] = 4900;
-  ViewWarning[ID_Skippy].SLI[4][1] = 5400;
-  ViewWarning[ID_Skippy].SLI[4][2] = 5800;
-  ViewWarning[ID_Skippy].SLI[4][3] = 6100;
-  ViewWarning[ID_Skippy].SLI[5][0] = 4900;
-  ViewWarning[ID_Skippy].SLI[5][1] = 5400;
-  ViewWarning[ID_Skippy].SLI[5][2] = 5800;
-  ViewWarning[ID_Skippy].SLI[5][3] = 6100;
-  ViewWarning[ID_Skippy].SLI[6][0] = 4900;
-  ViewWarning[ID_Skippy].SLI[6][1] = 5400;
-  ViewWarning[ID_Skippy].SLI[6][2] = 5800;
-  ViewWarning[ID_Skippy].SLI[6][3] = 6100;
+  CarProfile[ID_Skippy].SLI[0][0] = 4900;   // car has 5 forward gears
+  CarProfile[ID_Skippy].SLI[0][1] = 5400;
+  CarProfile[ID_Skippy].SLI[0][2] = 5800;
+  CarProfile[ID_Skippy].SLI[0][3] = 6100;
+  CarProfile[ID_Skippy].SLI[1][0] = 4900;
+  CarProfile[ID_Skippy].SLI[1][1] = 5400;
+  CarProfile[ID_Skippy].SLI[1][2] = 5800;
+  CarProfile[ID_Skippy].SLI[1][3] = 6100;
+  CarProfile[ID_Skippy].SLI[2][0] = 4900;
+  CarProfile[ID_Skippy].SLI[2][1] = 5400;
+  CarProfile[ID_Skippy].SLI[2][2] = 5800;
+  CarProfile[ID_Skippy].SLI[2][3] = 6100;
+  CarProfile[ID_Skippy].SLI[3][0] = 4900;
+  CarProfile[ID_Skippy].SLI[3][1] = 5400;
+  CarProfile[ID_Skippy].SLI[3][2] = 5800;
+  CarProfile[ID_Skippy].SLI[3][3] = 6100;
+  CarProfile[ID_Skippy].SLI[4][0] = 4900;
+  CarProfile[ID_Skippy].SLI[4][1] = 5400;
+  CarProfile[ID_Skippy].SLI[4][2] = 5800;
+  CarProfile[ID_Skippy].SLI[4][3] = 6100;
+  CarProfile[ID_Skippy].SLI[5][0] = 4900;
+  CarProfile[ID_Skippy].SLI[5][1] = 5400;
+  CarProfile[ID_Skippy].SLI[5][2] = 5800;
+  CarProfile[ID_Skippy].SLI[5][3] = 6100;
+  CarProfile[ID_Skippy].SLI[6][0] = 4900;
+  CarProfile[ID_Skippy].SLI[6][1] = 5400;
+  CarProfile[ID_Skippy].SLI[6][2] = 5800;
+  CarProfile[ID_Skippy].SLI[6][3] = 6100;
 
   // CTS-V
-  ViewLayout[ID_CTS_V].CarName[0] = 'C';
-  ViewLayout[ID_CTS_V].CarName[1] = 'T';
-  ViewLayout[ID_CTS_V].CarName[2] = 'S';
-  ViewLayout[ID_CTS_V].CarName[3] = '-';
-  ViewLayout[ID_CTS_V].CarName[4] = 'V';
-  ViewLayout[ID_CTS_V].CarName[5] = 0;
-  ViewLayout[ID_CTS_V].CarName[6] = 0;
-  ViewLayout[ID_CTS_V].EngineWarningsPosX = 0;
-  ViewLayout[ID_CTS_V].EngineWarningsPosY = 207;
-  ViewLayout[ID_CTS_V].ShowEngineWarnings = true;
-  ViewLayout[ID_CTS_V].FuelPosX = 0;
-  ViewLayout[ID_CTS_V].FuelPosY = 150;
-  ViewLayout[ID_CTS_V].ShowFuel = true;
-  ViewLayout[ID_CTS_V].GearPosX = 280;
-  ViewLayout[ID_CTS_V].GearPosY = 65;
-  ViewLayout[ID_CTS_V].ShowGear = true;
-  ViewLayout[ID_CTS_V].RPMPosY = 25;
-  ViewLayout[ID_CTS_V].RPMscale = 25;  // 8000 / 320
-  ViewLayout[ID_CTS_V].ShowRPM = true;
-  ViewLayout[ID_CTS_V].SLIPosY = 0;
-  ViewLayout[ID_CTS_V].ShowSLI = true;
-  ViewLayout[ID_CTS_V].SpeedPosX = 0;
-  ViewLayout[ID_CTS_V].SpeedPosY = 75;
-  ViewLayout[ID_CTS_V].ShowSpeed = true;
-  ViewLayout[ID_CTS_V].WaterTempPosX = 0;
-  ViewLayout[ID_CTS_V].WaterTempPosY = 182;
-  ViewLayout[ID_CTS_V].ShowWaterTemp = true;
+  CarProfile[ID_CTS_V].CarName[0] = 'C';
+  CarProfile[ID_CTS_V].CarName[1] = 'T';
+  CarProfile[ID_CTS_V].CarName[2] = 'S';
+  CarProfile[ID_CTS_V].CarName[3] = '-';
+  CarProfile[ID_CTS_V].CarName[4] = 'V';
+  CarProfile[ID_CTS_V].CarName[5] = 0;
 
-  ViewWarning[ID_CTS_V].Fuel = 80;
-  ViewWarning[ID_CTS_V].RPM = 288;         // 7200 / RPMscale
-  ViewWarning[ID_CTS_V].WaterTemp = 110;
+  CarProfile[ID_CTS_V].Fuel = 80;
+  CarProfile[ID_CTS_V].RPM = 288;         // 7200 / RPMscale
+  CarProfile[ID_CTS_V].RPMscale = 25;     // 8000 / 320
+  CarProfile[ID_CTS_V].WaterTemp = 110;
 
-  ViewWarning[ID_CTS_V].SLI[0][0] = 5600;  // car has 6 forward gears
-  ViewWarning[ID_CTS_V].SLI[0][1] = 6200;
-  ViewWarning[ID_CTS_V].SLI[0][2] = 6800;
-  ViewWarning[ID_CTS_V].SLI[0][3] = 7200;
-  ViewWarning[ID_CTS_V].SLI[1][0] = 5600;
-  ViewWarning[ID_CTS_V].SLI[1][1] = 6200;
-  ViewWarning[ID_CTS_V].SLI[1][2] = 6800;
-  ViewWarning[ID_CTS_V].SLI[1][3] = 7200;
-  ViewWarning[ID_CTS_V].SLI[2][0] = 5600;
-  ViewWarning[ID_CTS_V].SLI[2][1] = 6200;
-  ViewWarning[ID_CTS_V].SLI[2][2] = 6800;
-  ViewWarning[ID_CTS_V].SLI[2][3] = 7200;
-  ViewWarning[ID_CTS_V].SLI[3][0] = 5600;
-  ViewWarning[ID_CTS_V].SLI[3][1] = 6200;
-  ViewWarning[ID_CTS_V].SLI[3][2] = 6800;
-  ViewWarning[ID_CTS_V].SLI[3][3] = 7200;
-  ViewWarning[ID_CTS_V].SLI[4][0] = 5600;
-  ViewWarning[ID_CTS_V].SLI[4][1] = 6200;
-  ViewWarning[ID_CTS_V].SLI[4][2] = 6800;
-  ViewWarning[ID_CTS_V].SLI[4][3] = 7200;
-  ViewWarning[ID_CTS_V].SLI[5][0] = 5600;
-  ViewWarning[ID_CTS_V].SLI[5][1] = 6200;
-  ViewWarning[ID_CTS_V].SLI[5][2] = 6800;
-  ViewWarning[ID_CTS_V].SLI[5][3] = 7200;
-  ViewWarning[ID_CTS_V].SLI[6][0] = 5600;
-  ViewWarning[ID_CTS_V].SLI[6][1] = 6200;
-  ViewWarning[ID_CTS_V].SLI[6][2] = 6800;
-  ViewWarning[ID_CTS_V].SLI[6][3] = 7200;
-  ViewWarning[ID_CTS_V].SLI[7][0] = 5600;
-  ViewWarning[ID_CTS_V].SLI[7][1] = 6200;
-  ViewWarning[ID_CTS_V].SLI[7][2] = 6800;
-  ViewWarning[ID_CTS_V].SLI[7][3] = 7200;
+  CarProfile[ID_CTS_V].SLI[0][0] = 5600;  // car has 6 forward gears
+  CarProfile[ID_CTS_V].SLI[0][1] = 6200;
+  CarProfile[ID_CTS_V].SLI[0][2] = 6800;
+  CarProfile[ID_CTS_V].SLI[0][3] = 7200;
+  CarProfile[ID_CTS_V].SLI[1][0] = 5600;
+  CarProfile[ID_CTS_V].SLI[1][1] = 6200;
+  CarProfile[ID_CTS_V].SLI[1][2] = 6800;
+  CarProfile[ID_CTS_V].SLI[1][3] = 7200;
+  CarProfile[ID_CTS_V].SLI[2][0] = 5600;
+  CarProfile[ID_CTS_V].SLI[2][1] = 6200;
+  CarProfile[ID_CTS_V].SLI[2][2] = 6800;
+  CarProfile[ID_CTS_V].SLI[2][3] = 7200;
+  CarProfile[ID_CTS_V].SLI[3][0] = 5600;
+  CarProfile[ID_CTS_V].SLI[3][1] = 6200;
+  CarProfile[ID_CTS_V].SLI[3][2] = 6800;
+  CarProfile[ID_CTS_V].SLI[3][3] = 7200;
+  CarProfile[ID_CTS_V].SLI[4][0] = 5600;
+  CarProfile[ID_CTS_V].SLI[4][1] = 6200;
+  CarProfile[ID_CTS_V].SLI[4][2] = 6800;
+  CarProfile[ID_CTS_V].SLI[4][3] = 7200;
+  CarProfile[ID_CTS_V].SLI[5][0] = 5600;
+  CarProfile[ID_CTS_V].SLI[5][1] = 6200;
+  CarProfile[ID_CTS_V].SLI[5][2] = 6800;
+  CarProfile[ID_CTS_V].SLI[5][3] = 7200;
+  CarProfile[ID_CTS_V].SLI[6][0] = 5600;
+  CarProfile[ID_CTS_V].SLI[6][1] = 6200;
+  CarProfile[ID_CTS_V].SLI[6][2] = 6800;
+  CarProfile[ID_CTS_V].SLI[6][3] = 7200;
+  CarProfile[ID_CTS_V].SLI[7][0] = 5600;
+  CarProfile[ID_CTS_V].SLI[7][1] = 6200;
+  CarProfile[ID_CTS_V].SLI[7][2] = 6800;
+  CarProfile[ID_CTS_V].SLI[7][3] = 7200;
   
   // MX-5 NC
-  ViewLayout[ID_MX5_NC].CarName[0] = 'M';
-  ViewLayout[ID_MX5_NC].CarName[1] = 'X';
-  ViewLayout[ID_MX5_NC].CarName[2] = '5';
-  ViewLayout[ID_MX5_NC].CarName[3] = ' ';
-  ViewLayout[ID_MX5_NC].CarName[4] = 'N';
-  ViewLayout[ID_MX5_NC].CarName[5] = 'C';
-  ViewLayout[ID_MX5_NC].CarName[6] = 0;
-  ViewLayout[ID_MX5_NC].EngineWarningsPosX = 0;
-  ViewLayout[ID_MX5_NC].EngineWarningsPosY = 207;
-  ViewLayout[ID_MX5_NC].ShowEngineWarnings = true;
-  ViewLayout[ID_MX5_NC].FuelPosX = 0;
-  ViewLayout[ID_MX5_NC].FuelPosY = 150;
-  ViewLayout[ID_MX5_NC].ShowFuel = true;
-  ViewLayout[ID_MX5_NC].GearPosX = 280;
-  ViewLayout[ID_MX5_NC].GearPosY = 65;
-  ViewLayout[ID_MX5_NC].ShowGear = true;
-  ViewLayout[ID_MX5_NC].RPMPosY = 25;
-  ViewLayout[ID_MX5_NC].RPMscale = 22.8125;  // 7300 / 320
-  ViewLayout[ID_MX5_NC].ShowRPM = true;
-  ViewLayout[ID_MX5_NC].SLIPosY = 0;
-  ViewLayout[ID_MX5_NC].ShowSLI = true;
-  ViewLayout[ID_MX5_NC].SpeedPosX = 0;
-  ViewLayout[ID_MX5_NC].SpeedPosY = 75;
-  ViewLayout[ID_MX5_NC].ShowSpeed = true;
-  ViewLayout[ID_MX5_NC].WaterTempPosX = 0;
-  ViewLayout[ID_MX5_NC].WaterTempPosY = 182;
-  ViewLayout[ID_MX5_NC].ShowWaterTemp = true;
+  CarProfile[ID_MX5_NC].CarName[0] = 'M';
+  CarProfile[ID_MX5_NC].CarName[1] = 'X';
+  CarProfile[ID_MX5_NC].CarName[2] = '5';
+  CarProfile[ID_MX5_NC].CarName[3] = ' ';
+  CarProfile[ID_MX5_NC].CarName[4] = 'N';
+  CarProfile[ID_MX5_NC].CarName[5] = 'C';
+  CarProfile[ID_MX5_NC].CarName[6] = 0;
 
-  ViewWarning[ID_MX5_NC].Fuel = 40;
-  ViewWarning[ID_MX5_NC].RPM = 296;         // 6750 / RPMscale
-  ViewWarning[ID_MX5_NC].WaterTemp = 100;
+  CarProfile[ID_MX5_NC].Fuel = 40;
+  CarProfile[ID_MX5_NC].RPM = 296;           // 6750 / RPMscale
+  CarProfile[ID_MX5_NC].RPMscale = 22.8125;  // 7300 / 320
+  CarProfile[ID_MX5_NC].WaterTemp = 100;
 
-  ViewWarning[ID_MX5_NC].SLI[0][0] = 6000;  // car has 6 forward gears
-  ViewWarning[ID_MX5_NC].SLI[0][1] = 6250;
-  ViewWarning[ID_MX5_NC].SLI[0][2] = 6500;
-  ViewWarning[ID_MX5_NC].SLI[0][3] = 6750;
-  ViewWarning[ID_MX5_NC].SLI[1][0] = 6000;
-  ViewWarning[ID_MX5_NC].SLI[1][1] = 6250;
-  ViewWarning[ID_MX5_NC].SLI[1][2] = 6500;
-  ViewWarning[ID_MX5_NC].SLI[1][3] = 6750;
-  ViewWarning[ID_MX5_NC].SLI[2][0] = 6000;
-  ViewWarning[ID_MX5_NC].SLI[2][1] = 6250;
-  ViewWarning[ID_MX5_NC].SLI[2][2] = 6500;
-  ViewWarning[ID_MX5_NC].SLI[2][3] = 6750;
-  ViewWarning[ID_MX5_NC].SLI[3][0] = 6000;
-  ViewWarning[ID_MX5_NC].SLI[3][1] = 6250;
-  ViewWarning[ID_MX5_NC].SLI[3][2] = 6500;
-  ViewWarning[ID_MX5_NC].SLI[3][3] = 6750;
-  ViewWarning[ID_MX5_NC].SLI[4][0] = 6000;
-  ViewWarning[ID_MX5_NC].SLI[4][1] = 6250;
-  ViewWarning[ID_MX5_NC].SLI[4][2] = 6500;
-  ViewWarning[ID_MX5_NC].SLI[4][3] = 6750;
-  ViewWarning[ID_MX5_NC].SLI[5][0] = 6000;
-  ViewWarning[ID_MX5_NC].SLI[5][1] = 6250;
-  ViewWarning[ID_MX5_NC].SLI[5][2] = 6500;
-  ViewWarning[ID_MX5_NC].SLI[5][3] = 6750;
-  ViewWarning[ID_MX5_NC].SLI[6][0] = 6000;
-  ViewWarning[ID_MX5_NC].SLI[6][1] = 6250;
-  ViewWarning[ID_MX5_NC].SLI[6][2] = 6500;
-  ViewWarning[ID_MX5_NC].SLI[6][3] = 6750;
-  ViewWarning[ID_MX5_NC].SLI[7][0] = 6000;
-  ViewWarning[ID_MX5_NC].SLI[7][1] = 6250;
-  ViewWarning[ID_MX5_NC].SLI[7][2] = 6500;
-  ViewWarning[ID_MX5_NC].SLI[7][3] = 6750;
+  CarProfile[ID_MX5_NC].SLI[0][0] = 6000;    // car has 6 forward gears
+  CarProfile[ID_MX5_NC].SLI[0][1] = 6250;
+  CarProfile[ID_MX5_NC].SLI[0][2] = 6500;
+  CarProfile[ID_MX5_NC].SLI[0][3] = 6750;
+  CarProfile[ID_MX5_NC].SLI[1][0] = 6000;
+  CarProfile[ID_MX5_NC].SLI[1][1] = 6250;
+  CarProfile[ID_MX5_NC].SLI[1][2] = 6500;
+  CarProfile[ID_MX5_NC].SLI[1][3] = 6750;
+  CarProfile[ID_MX5_NC].SLI[2][0] = 6000;
+  CarProfile[ID_MX5_NC].SLI[2][1] = 6250;
+  CarProfile[ID_MX5_NC].SLI[2][2] = 6500;
+  CarProfile[ID_MX5_NC].SLI[2][3] = 6750;
+  CarProfile[ID_MX5_NC].SLI[3][0] = 6000;
+  CarProfile[ID_MX5_NC].SLI[3][1] = 6250;
+  CarProfile[ID_MX5_NC].SLI[3][2] = 6500;
+  CarProfile[ID_MX5_NC].SLI[3][3] = 6750;
+  CarProfile[ID_MX5_NC].SLI[4][0] = 6000;
+  CarProfile[ID_MX5_NC].SLI[4][1] = 6250;
+  CarProfile[ID_MX5_NC].SLI[4][2] = 6500;
+  CarProfile[ID_MX5_NC].SLI[4][3] = 6750;
+  CarProfile[ID_MX5_NC].SLI[5][0] = 6000;
+  CarProfile[ID_MX5_NC].SLI[5][1] = 6250;
+  CarProfile[ID_MX5_NC].SLI[5][2] = 6500;
+  CarProfile[ID_MX5_NC].SLI[5][3] = 6750;
+  CarProfile[ID_MX5_NC].SLI[6][0] = 6000;
+  CarProfile[ID_MX5_NC].SLI[6][1] = 6250;
+  CarProfile[ID_MX5_NC].SLI[6][2] = 6500;
+  CarProfile[ID_MX5_NC].SLI[6][3] = 6750;
+  CarProfile[ID_MX5_NC].SLI[7][0] = 6000;
+  CarProfile[ID_MX5_NC].SLI[7][1] = 6250;
+  CarProfile[ID_MX5_NC].SLI[7][2] = 6500;
+  CarProfile[ID_MX5_NC].SLI[7][3] = 6750;
 
   // MX-5 ND
-  ViewLayout[ID_MX5_ND].CarName[0] = 'M';
-  ViewLayout[ID_MX5_ND].CarName[1] = 'X';
-  ViewLayout[ID_MX5_ND].CarName[2] = '5';
-  ViewLayout[ID_MX5_ND].CarName[3] = ' ';
-  ViewLayout[ID_MX5_ND].CarName[4] = 'N';
-  ViewLayout[ID_MX5_ND].CarName[5] = 'D';
-  ViewLayout[ID_MX5_ND].CarName[6] = 0;
-  ViewLayout[ID_MX5_ND].EngineWarningsPosX = 0;
-  ViewLayout[ID_MX5_ND].EngineWarningsPosY = 207;
-  ViewLayout[ID_MX5_ND].ShowEngineWarnings = true;
-  ViewLayout[ID_MX5_ND].FuelPosX = 0;
-  ViewLayout[ID_MX5_ND].FuelPosY = 150;
-  ViewLayout[ID_MX5_ND].ShowFuel = true;
-  ViewLayout[ID_MX5_ND].GearPosX = 280;
-  ViewLayout[ID_MX5_ND].GearPosY = 65;
-  ViewLayout[ID_MX5_ND].ShowGear = true;
-  ViewLayout[ID_MX5_ND].RPMPosY = 25;
-  ViewLayout[ID_MX5_ND].RPMscale = 22.8125;  // 7300 / 320
-  ViewLayout[ID_MX5_ND].ShowRPM = true;
-  ViewLayout[ID_MX5_ND].SLIPosY = 0;
-  ViewLayout[ID_MX5_ND].ShowSLI = true;
-  ViewLayout[ID_MX5_ND].SpeedPosX = 0;
-  ViewLayout[ID_MX5_ND].SpeedPosY = 75;
-  ViewLayout[ID_MX5_ND].ShowSpeed = true;
-  ViewLayout[ID_MX5_ND].WaterTempPosX = 0;
-  ViewLayout[ID_MX5_ND].WaterTempPosY = 182;
-  ViewLayout[ID_MX5_ND].ShowWaterTemp = true;
+  CarProfile[ID_MX5_ND].CarName[0] = 'M';
+  CarProfile[ID_MX5_ND].CarName[1] = 'X';
+  CarProfile[ID_MX5_ND].CarName[2] = '5';
+  CarProfile[ID_MX5_ND].CarName[3] = ' ';
+  CarProfile[ID_MX5_ND].CarName[4] = 'N';
+  CarProfile[ID_MX5_ND].CarName[5] = 'D';
+  CarProfile[ID_MX5_ND].CarName[6] = 0;
 
-  ViewWarning[ID_MX5_ND].Fuel = 40;
-  ViewWarning[ID_MX5_ND].RPM = 281;           // 6400 / RPMscale
-  ViewWarning[ID_MX5_ND].WaterTemp = 100;
+  CarProfile[ID_MX5_ND].Fuel = 40;
+  CarProfile[ID_MX5_ND].RPM = 281;           // 6400 / RPMscale
+  CarProfile[ID_MX5_ND].RPMscale = 22.8125;  // 7300 / 320
+  CarProfile[ID_MX5_ND].WaterTemp = 100;
 
-  ViewWarning[ID_MX5_ND].SLI[0][0] = 5000;    // car has 6 forward gears
-  ViewWarning[ID_MX5_ND].SLI[0][1] = 5400;
-  ViewWarning[ID_MX5_ND].SLI[0][2] = 5800;
-  ViewWarning[ID_MX5_ND].SLI[0][3] = 6400;
-  ViewWarning[ID_MX5_ND].SLI[1][0] = 5000;
-  ViewWarning[ID_MX5_ND].SLI[1][1] = 5400;
-  ViewWarning[ID_MX5_ND].SLI[1][2] = 5800;
-  ViewWarning[ID_MX5_ND].SLI[1][3] = 6400;
-  ViewWarning[ID_MX5_ND].SLI[2][0] = 5000;
-  ViewWarning[ID_MX5_ND].SLI[2][1] = 5400;
-  ViewWarning[ID_MX5_ND].SLI[2][2] = 5800;
-  ViewWarning[ID_MX5_ND].SLI[2][3] = 6400;
-  ViewWarning[ID_MX5_ND].SLI[3][0] = 5000;
-  ViewWarning[ID_MX5_ND].SLI[3][1] = 5400;
-  ViewWarning[ID_MX5_ND].SLI[3][2] = 5800;
-  ViewWarning[ID_MX5_ND].SLI[3][3] = 6400;
-  ViewWarning[ID_MX5_ND].SLI[4][0] = 5000;
-  ViewWarning[ID_MX5_ND].SLI[4][1] = 5400;
-  ViewWarning[ID_MX5_ND].SLI[4][2] = 5800;
-  ViewWarning[ID_MX5_ND].SLI[4][3] = 6400;
-  ViewWarning[ID_MX5_ND].SLI[5][0] = 5000;
-  ViewWarning[ID_MX5_ND].SLI[5][1] = 5400;
-  ViewWarning[ID_MX5_ND].SLI[5][2] = 5800;
-  ViewWarning[ID_MX5_ND].SLI[5][3] = 6400;
-  ViewWarning[ID_MX5_ND].SLI[6][0] = 5000;
-  ViewWarning[ID_MX5_ND].SLI[6][1] = 5400;
-  ViewWarning[ID_MX5_ND].SLI[6][2] = 5800;
-  ViewWarning[ID_MX5_ND].SLI[6][3] = 6400;
-  ViewWarning[ID_MX5_ND].SLI[7][0] = 5000;
-  ViewWarning[ID_MX5_ND].SLI[7][1] = 5400;
-  ViewWarning[ID_MX5_ND].SLI[7][2] = 5800;
-  ViewWarning[ID_MX5_ND].SLI[7][3] = 6400;
+  CarProfile[ID_MX5_ND].SLI[0][0] = 5000;    // car has 6 forward gears
+  CarProfile[ID_MX5_ND].SLI[0][1] = 5400;
+  CarProfile[ID_MX5_ND].SLI[0][2] = 5800;
+  CarProfile[ID_MX5_ND].SLI[0][3] = 6400;
+  CarProfile[ID_MX5_ND].SLI[1][0] = 5000;
+  CarProfile[ID_MX5_ND].SLI[1][1] = 5400;
+  CarProfile[ID_MX5_ND].SLI[1][2] = 5800;
+  CarProfile[ID_MX5_ND].SLI[1][3] = 6400;
+  CarProfile[ID_MX5_ND].SLI[2][0] = 5000;
+  CarProfile[ID_MX5_ND].SLI[2][1] = 5400;
+  CarProfile[ID_MX5_ND].SLI[2][2] = 5800;
+  CarProfile[ID_MX5_ND].SLI[2][3] = 6400;
+  CarProfile[ID_MX5_ND].SLI[3][0] = 5000;
+  CarProfile[ID_MX5_ND].SLI[3][1] = 5400;
+  CarProfile[ID_MX5_ND].SLI[3][2] = 5800;
+  CarProfile[ID_MX5_ND].SLI[3][3] = 6400;
+  CarProfile[ID_MX5_ND].SLI[4][0] = 5000;
+  CarProfile[ID_MX5_ND].SLI[4][1] = 5400;
+  CarProfile[ID_MX5_ND].SLI[4][2] = 5800;
+  CarProfile[ID_MX5_ND].SLI[4][3] = 6400;
+  CarProfile[ID_MX5_ND].SLI[5][0] = 5000;
+  CarProfile[ID_MX5_ND].SLI[5][1] = 5400;
+  CarProfile[ID_MX5_ND].SLI[5][2] = 5800;
+  CarProfile[ID_MX5_ND].SLI[5][3] = 6400;
+  CarProfile[ID_MX5_ND].SLI[6][0] = 5000;
+  CarProfile[ID_MX5_ND].SLI[6][1] = 5400;
+  CarProfile[ID_MX5_ND].SLI[6][2] = 5800;
+  CarProfile[ID_MX5_ND].SLI[6][3] = 6400;
+  CarProfile[ID_MX5_ND].SLI[7][0] = 5000;
+  CarProfile[ID_MX5_ND].SLI[7][1] = 5400;
+  CarProfile[ID_MX5_ND].SLI[7][2] = 5800;
+  CarProfile[ID_MX5_ND].SLI[7][3] = 6400;
 
   // Formula Renault 2.0
-  ViewLayout[ID_FR20].CarName[0] = 'F';
-  ViewLayout[ID_FR20].CarName[1] = 'R';
-  ViewLayout[ID_FR20].CarName[2] = ' ';
-  ViewLayout[ID_FR20].CarName[3] = '2';
-  ViewLayout[ID_FR20].CarName[4] = '.';
-  ViewLayout[ID_FR20].CarName[5] = '0';
-  ViewLayout[ID_FR20].CarName[6] = 0;
-  ViewLayout[ID_FR20].EngineWarningsPosX = 0;
-  ViewLayout[ID_FR20].EngineWarningsPosY = 207;
-  ViewLayout[ID_FR20].ShowEngineWarnings = true;
-  ViewLayout[ID_FR20].FuelPosX = 0;
-  ViewLayout[ID_FR20].FuelPosY = 150;
-  ViewLayout[ID_FR20].ShowFuel = true;
-  ViewLayout[ID_FR20].GearPosX = 280;
-  ViewLayout[ID_FR20].GearPosY = 65;
-  ViewLayout[ID_FR20].ShowGear = true;
-  ViewLayout[ID_FR20].RPMPosY = 25;
-  ViewLayout[ID_FR20].RPMscale = 23.75;  // 7600 / 320
-  ViewLayout[ID_FR20].ShowRPM = true;
-  ViewLayout[ID_FR20].SLIPosY = 0;
-  ViewLayout[ID_FR20].ShowSLI = true;
-  ViewLayout[ID_FR20].SpeedPosX = 0;
-  ViewLayout[ID_FR20].SpeedPosY = 75;
-  ViewLayout[ID_FR20].ShowSpeed = true;
-  ViewLayout[ID_FR20].WaterTempPosX = 0;
-  ViewLayout[ID_FR20].WaterTempPosY = 182;
-  ViewLayout[ID_FR20].ShowWaterTemp = true;
+  CarProfile[ID_FR20].CarName[0] = 'F';
+  CarProfile[ID_FR20].CarName[1] = 'R';
+  CarProfile[ID_FR20].CarName[2] = ' ';
+  CarProfile[ID_FR20].CarName[3] = '2';
+  CarProfile[ID_FR20].CarName[4] = '.';
+  CarProfile[ID_FR20].CarName[5] = '0';
+  CarProfile[ID_FR20].CarName[6] = 0;
 
-  ViewWarning[ID_FR20].Fuel = 40;
-  ViewWarning[ID_FR20].RPM = 307;           // 7300 / RPMscale
-  ViewWarning[ID_FR20].WaterTemp = 100;
+  CarProfile[ID_FR20].Fuel = 40;
+  CarProfile[ID_FR20].RPM = 307;           // 7300 / RPMscale
+  CarProfile[ID_FR20].RPMscale = 23.75;    // 7600 / 320
+  CarProfile[ID_FR20].WaterTemp = 100;
 
-  ViewWarning[ID_FR20].SLI[0][0] = 6600;    // car has 7 forward gears
-  ViewWarning[ID_FR20].SLI[0][1] = 6800;
-  ViewWarning[ID_FR20].SLI[0][2] = 7000;
-  ViewWarning[ID_FR20].SLI[0][3] = 7300;
-  ViewWarning[ID_FR20].SLI[1][0] = 6600;
-  ViewWarning[ID_FR20].SLI[1][1] = 6800;
-  ViewWarning[ID_FR20].SLI[1][2] = 7000;
-  ViewWarning[ID_FR20].SLI[1][3] = 7300;
-  ViewWarning[ID_FR20].SLI[2][0] = 6600;
-  ViewWarning[ID_FR20].SLI[2][1] = 6800;
-  ViewWarning[ID_FR20].SLI[2][2] = 7000;
-  ViewWarning[ID_FR20].SLI[2][3] = 7300;
-  ViewWarning[ID_FR20].SLI[3][0] = 6600;
-  ViewWarning[ID_FR20].SLI[3][1] = 6800;
-  ViewWarning[ID_FR20].SLI[3][2] = 7000;
-  ViewWarning[ID_FR20].SLI[3][3] = 7300;
-  ViewWarning[ID_FR20].SLI[4][0] = 6600;
-  ViewWarning[ID_FR20].SLI[4][1] = 6800;
-  ViewWarning[ID_FR20].SLI[4][2] = 7000;
-  ViewWarning[ID_FR20].SLI[4][3] = 7300;
-  ViewWarning[ID_FR20].SLI[5][0] = 6600;
-  ViewWarning[ID_FR20].SLI[5][1] = 6800;
-  ViewWarning[ID_FR20].SLI[5][2] = 7000;
-  ViewWarning[ID_FR20].SLI[5][3] = 7300;
-  ViewWarning[ID_FR20].SLI[6][0] = 6600;
-  ViewWarning[ID_FR20].SLI[6][1] = 6800;
-  ViewWarning[ID_FR20].SLI[6][2] = 7000;
-  ViewWarning[ID_FR20].SLI[6][3] = 7300;
-  ViewWarning[ID_FR20].SLI[7][0] = 6600;
-  ViewWarning[ID_FR20].SLI[7][1] = 6800;
-  ViewWarning[ID_FR20].SLI[7][2] = 7000;
-  ViewWarning[ID_FR20].SLI[7][3] = 7300;
-  ViewWarning[ID_FR20].SLI[8][0] = 6600;
-  ViewWarning[ID_FR20].SLI[8][1] = 6800;
-  ViewWarning[ID_FR20].SLI[8][2] = 7000;
-  ViewWarning[ID_FR20].SLI[8][3] = 7300;
+  CarProfile[ID_FR20].SLI[0][0] = 6600;    // car has 7 forward gears
+  CarProfile[ID_FR20].SLI[0][1] = 6800;
+  CarProfile[ID_FR20].SLI[0][2] = 7000;
+  CarProfile[ID_FR20].SLI[0][3] = 7300;
+  CarProfile[ID_FR20].SLI[1][0] = 6600;
+  CarProfile[ID_FR20].SLI[1][1] = 6800;
+  CarProfile[ID_FR20].SLI[1][2] = 7000;
+  CarProfile[ID_FR20].SLI[1][3] = 7300;
+  CarProfile[ID_FR20].SLI[2][0] = 6600;
+  CarProfile[ID_FR20].SLI[2][1] = 6800;
+  CarProfile[ID_FR20].SLI[2][2] = 7000;
+  CarProfile[ID_FR20].SLI[2][3] = 7300;
+  CarProfile[ID_FR20].SLI[3][0] = 6600;
+  CarProfile[ID_FR20].SLI[3][1] = 6800;
+  CarProfile[ID_FR20].SLI[3][2] = 7000;
+  CarProfile[ID_FR20].SLI[3][3] = 7300;
+  CarProfile[ID_FR20].SLI[4][0] = 6600;
+  CarProfile[ID_FR20].SLI[4][1] = 6800;
+  CarProfile[ID_FR20].SLI[4][2] = 7000;
+  CarProfile[ID_FR20].SLI[4][3] = 7300;
+  CarProfile[ID_FR20].SLI[5][0] = 6600;
+  CarProfile[ID_FR20].SLI[5][1] = 6800;
+  CarProfile[ID_FR20].SLI[5][2] = 7000;
+  CarProfile[ID_FR20].SLI[5][3] = 7300;
+  CarProfile[ID_FR20].SLI[6][0] = 6600;
+  CarProfile[ID_FR20].SLI[6][1] = 6800;
+  CarProfile[ID_FR20].SLI[6][2] = 7000;
+  CarProfile[ID_FR20].SLI[6][3] = 7300;
+  CarProfile[ID_FR20].SLI[7][0] = 6600;
+  CarProfile[ID_FR20].SLI[7][1] = 6800;
+  CarProfile[ID_FR20].SLI[7][2] = 7000;
+  CarProfile[ID_FR20].SLI[7][3] = 7300;
+  CarProfile[ID_FR20].SLI[8][0] = 6600;
+  CarProfile[ID_FR20].SLI[8][1] = 6800;
+  CarProfile[ID_FR20].SLI[8][2] = 7000;
+  CarProfile[ID_FR20].SLI[8][3] = 7300;
 
   // upload the button layout of car selection menu
   // use the formula to determine button outline: (x*80)+10, (y*54)+30, 60, 36)
   // x and y is the position in the 4x4 matrix
   for (int i=0; i<NumOfCars; i++)
-    buttons[i] = myButtons.addButton( ((i%4)*80)+10, ((i/4)*54)+30, 60,  36, ViewLayout[i].CarName);
+    buttons[i] = myButtons.addButton( ((i%4)*80)+10, ((i/4)*54)+30, 60,  36, CarProfile[i].CarName);
 }
 
-// draw the background for the selected car, draw only the active instruments
+// draw the background and the active instruments for the car
 void DrawBackground(byte ID)
 {
   myGLCD.clrScr();
   myGLCD.setFont(BigFont);
   myGLCD.setColor(dc_r, dc_g, dc_b);
 
-  if(ViewLayout[ID].ShowEngineWarnings == true)
+  if(ScreenLayout.ShowEngineWarnings == true)
   {
     // draw the off state warning lights
-    myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +0, ViewLayout[ID].EngineWarningsPosY, 32, 32, fuelpressure_ok);
-    myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +32, ViewLayout[ID].EngineWarningsPosY, 32, 32, oilpressure_ok);
-    myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +64, ViewLayout[ID].EngineWarningsPosY, 32, 32, water_ok);
-    myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +112, ViewLayout[ID].EngineWarningsPosY, 32, 32, pitspeedlimiter_off);
-    myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +144, ViewLayout[ID].EngineWarningsPosY, 32, 32, stall_off);
+    myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +0, ScreenLayout.EngineWarningsPosY, 32, 32, fuelpressure_ok);
+    myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +32, ScreenLayout.EngineWarningsPosY, 32, 32, oilpressure_ok);
+    myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +64, ScreenLayout.EngineWarningsPosY, 32, 32, water_ok);
+    myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +112, ScreenLayout.EngineWarningsPosY, 32, 32, pitspeedlimiter_off);
+    myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +144, ScreenLayout.EngineWarningsPosY, 32, 32, stall_off);
     
   }
   
-  if(ViewLayout[ID].ShowFuel == true)
+  if(ScreenLayout.ShowFuel == true)
   {
-    myGLCD.print("Fuel:", ViewLayout[ID].FuelPosX, ViewLayout[ID].FuelPosY);
-    myGLCD.print("L", ViewLayout[ID].FuelPosX+160, ViewLayout[ID].FuelPosY);
+    myGLCD.print("Fuel:", ScreenLayout.FuelPosX, ScreenLayout.FuelPosY);
+    myGLCD.print("L", ScreenLayout.FuelPosX+160, ScreenLayout.FuelPosY);
   }
 
-  if(ViewLayout[ID].ShowSpeed == true)
+  if(ScreenLayout.ShowSpeed == true)
   {
-    myGLCD.print("Speed:", ViewLayout[ID].SpeedPosX, ViewLayout[ID].SpeedPosY);
-    myGLCD.print("km/h", ViewLayout[ID].SpeedPosX+160, ViewLayout[ID].SpeedPosY);
+    myGLCD.print("Speed:", ScreenLayout.SpeedPosX, ScreenLayout.SpeedPosY);
+    myGLCD.print("km/h", ScreenLayout.SpeedPosX+160, ScreenLayout.SpeedPosY);
   }
 
-  if(ViewLayout[ID].ShowWaterTemp == true)
+  if(ScreenLayout.ShowWaterTemp == true)
   {
-    myGLCD.print("Water:", ViewLayout[ID].WaterTempPosX, ViewLayout[ID].WaterTempPosY);
-    myGLCD.print("C", ViewLayout[ID].WaterTempPosX+160, ViewLayout[ID].WaterTempPosY);
+    myGLCD.print("Water:", ScreenLayout.WaterTempPosX, ScreenLayout.WaterTempPosY);
+    myGLCD.print("C", ScreenLayout.WaterTempPosX+160, ScreenLayout.WaterTempPosY);
   }
   
-  if(ViewLayout[ID].ShowRPM == true)
+  if(ScreenLayout.ShowRPM == true)
   {
     // use hard coded instructions to draw the RPM gauge layout per car
     myGLCD.setFont(SmallFont);  // 8x12 pixel
     switch (ID)
     {
       case ID_Skippy:
-        myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+35, ViewWarning[ID].RPM-1, ViewLayout[ID].RPMPosY+35);  // horizontal green line
-        myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+24, 0, ViewLayout[ID].RPMPosY+34);      // 0 rmp mark
-        myGLCD.drawLine(97, ViewLayout[ID].RPMPosY+28, 97, ViewLayout[ID].RPMPosY+34);    // 2000 rpm mark
-        myGLCD.drawLine(194, ViewLayout[ID].RPMPosY+28, 194, ViewLayout[ID].RPMPosY+34);  // 4000 rpm mark
-        myGLCD.print("10", 40, ViewLayout[ID].RPMPosY+22);         // 1000 rpm mark
-        myGLCD.print("30", 137, ViewLayout[ID].RPMPosY+22);        // 3000 rpm mark
-        myGLCD.print("50", 234, ViewLayout[ID].RPMPosY+22);        // 5000 rpm mark
+        myGLCD.drawLine(0, ScreenLayout.RPMPosY+35, CarProfile[ID_Skippy].RPM-1, ScreenLayout.RPMPosY+35);  // horizontal green line
+        myGLCD.drawLine(0, ScreenLayout.RPMPosY+24, 0, ScreenLayout.RPMPosY+34);      // 0 rmp mark
+        myGLCD.drawLine(97, ScreenLayout.RPMPosY+28, 97, ScreenLayout.RPMPosY+34);    // 2000 rpm mark
+        myGLCD.drawLine(194, ScreenLayout.RPMPosY+28, 194, ScreenLayout.RPMPosY+34);  // 4000 rpm mark
+        myGLCD.print("10", 40, ScreenLayout.RPMPosY+22);         // 1000 rpm mark
+        myGLCD.print("30", 137, ScreenLayout.RPMPosY+22);        // 3000 rpm mark
+        myGLCD.print("50", 234, ScreenLayout.RPMPosY+22);        // 5000 rpm mark
         myGLCD.setColor(wc_r, wc_g, wc_b);
-        myGLCD.drawLine(291, ViewLayout[ID].RPMPosY+28, 291, ViewLayout[ID].RPMPosY+34);  // 6000 rpm mark
-        myGLCD.drawLine(ViewWarning[ID].RPM, ViewLayout[ID].RPMPosY+35, 319, ViewLayout[ID].RPMPosY+35);  // horizontal red line
+        myGLCD.drawLine(291, ScreenLayout.RPMPosY+28, 291, ScreenLayout.RPMPosY+34);  // 6000 rpm mark
+        myGLCD.drawLine(CarProfile[ID_Skippy].RPM, ScreenLayout.RPMPosY+35, 319, ScreenLayout.RPMPosY+35);  // horizontal red line
         break;
 
       case ID_CTS_V:
-        myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+35, ViewWarning[ID].RPM-1, ViewLayout[ID].RPMPosY+35);  // horizontal green line
-        myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+24, 0, ViewLayout[ID].RPMPosY+34);      // 0 rmp mark
-        myGLCD.drawLine(80, ViewLayout[ID].RPMPosY+28, 80, ViewLayout[ID].RPMPosY+34);    // 2000 rpm mark
-        myGLCD.drawLine(160, ViewLayout[ID].RPMPosY+28, 160, ViewLayout[ID].RPMPosY+34);  // 4000 rpm mark
-        myGLCD.drawLine(240, ViewLayout[ID].RPMPosY+28, 240, ViewLayout[ID].RPMPosY+34);  // 6000 rpm mark
-        myGLCD.print("10", 32, ViewLayout[ID].RPMPosY+22);         // 1000 rpm mark -8 pixel
-        myGLCD.print("30", 112, ViewLayout[ID].RPMPosY+22);        // 3000 rpm mark -8 pixel
-        myGLCD.print("50", 192, ViewLayout[ID].RPMPosY+22);        // 5000 rpm mark -8 pixel
-        myGLCD.print("70", 272, ViewLayout[ID].RPMPosY+22);        // 7000 rpm mark -8 pixel
+        myGLCD.drawLine(0, ScreenLayout.RPMPosY+35, CarProfile[ID_CTS_V].RPM-1, ScreenLayout.RPMPosY+35);  // horizontal green line
+        myGLCD.drawLine(0, ScreenLayout.RPMPosY+24, 0, ScreenLayout.RPMPosY+34);      // 0 rmp mark
+        myGLCD.drawLine(80, ScreenLayout.RPMPosY+28, 80, ScreenLayout.RPMPosY+34);    // 2000 rpm mark
+        myGLCD.drawLine(160, ScreenLayout.RPMPosY+28, 160, ScreenLayout.RPMPosY+34);  // 4000 rpm mark
+        myGLCD.drawLine(240, ScreenLayout.RPMPosY+28, 240, ScreenLayout.RPMPosY+34);  // 6000 rpm mark
+        myGLCD.print("10", 32, ScreenLayout.RPMPosY+22);         // 1000 rpm mark -8 pixel
+        myGLCD.print("30", 112, ScreenLayout.RPMPosY+22);        // 3000 rpm mark -8 pixel
+        myGLCD.print("50", 192, ScreenLayout.RPMPosY+22);        // 5000 rpm mark -8 pixel
+        myGLCD.print("70", 272, ScreenLayout.RPMPosY+22);        // 7000 rpm mark -8 pixel
         myGLCD.setColor(wc_r, wc_g, wc_b);
-        myGLCD.drawLine(319, ViewLayout[ID].RPMPosY+28, 319, ViewLayout[ID].RPMPosY+34);  // 8000 rpm mark
-        myGLCD.drawLine(ViewWarning[ID].RPM, ViewLayout[ID].RPMPosY+35, 319, ViewLayout[ID].RPMPosY+35);  // horizontal red line
+        myGLCD.drawLine(319, ScreenLayout.RPMPosY+28, 319, ScreenLayout.RPMPosY+34);  // 8000 rpm mark
+        myGLCD.drawLine(CarProfile[ID_CTS_V].RPM, ScreenLayout.RPMPosY+35, 319, ScreenLayout.RPMPosY+35);  // horizontal red line
         break;
 
       case ID_MX5_NC:
-        myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+35, ViewWarning[ID].RPM-1, ViewLayout[ID].RPMPosY+35);  // horizontal green line
-        myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+24, 0, ViewLayout[ID].RPMPosY+34);      // 0 rmp mark
-        myGLCD.drawLine(88, ViewLayout[ID].RPMPosY+28, 88, ViewLayout[ID].RPMPosY+34);    // 2000 rpm mark
-        myGLCD.drawLine(175, ViewLayout[ID].RPMPosY+28, 175, ViewLayout[ID].RPMPosY+34);  // 4000 rpm mark
-        myGLCD.drawLine(263, ViewLayout[ID].RPMPosY+28, 263, ViewLayout[ID].RPMPosY+34);  // 6000 rpm mark
-        myGLCD.print("10", 36, ViewLayout[ID].RPMPosY+22);         // 1000 rpm mark -8 pixel
-        myGLCD.print("30", 124, ViewLayout[ID].RPMPosY+22);        // 3000 rpm mark -8 pixel
-        myGLCD.print("50", 211, ViewLayout[ID].RPMPosY+22);        // 5000 rpm mark -8 pixel
+        myGLCD.drawLine(0, ScreenLayout.RPMPosY+35, CarProfile[ID_MX5_NC].RPM-1, ScreenLayout.RPMPosY+35);  // horizontal green line
+        myGLCD.drawLine(0, ScreenLayout.RPMPosY+24, 0, ScreenLayout.RPMPosY+34);      // 0 rmp mark
+        myGLCD.drawLine(88, ScreenLayout.RPMPosY+28, 88, ScreenLayout.RPMPosY+34);    // 2000 rpm mark
+        myGLCD.drawLine(175, ScreenLayout.RPMPosY+28, 175, ScreenLayout.RPMPosY+34);  // 4000 rpm mark
+        myGLCD.drawLine(263, ScreenLayout.RPMPosY+28, 263, ScreenLayout.RPMPosY+34);  // 6000 rpm mark
+        myGLCD.print("10", 36, ScreenLayout.RPMPosY+22);         // 1000 rpm mark -8 pixel
+        myGLCD.print("30", 124, ScreenLayout.RPMPosY+22);        // 3000 rpm mark -8 pixel
+        myGLCD.print("50", 211, ScreenLayout.RPMPosY+22);        // 5000 rpm mark -8 pixel
         myGLCD.setColor(wc_r, wc_g, wc_b);
-        myGLCD.print("70", 299, ViewLayout[ID].RPMPosY+22);        // 7000 rpm mark -8 pixel
-        myGLCD.drawLine(ViewWarning[ID].RPM, ViewLayout[ID].RPMPosY+35, 319, ViewLayout[ID].RPMPosY+35);  // horizontal red line
+        myGLCD.print("70", 299, ScreenLayout.RPMPosY+22);        // 7000 rpm mark -8 pixel
+        myGLCD.drawLine(CarProfile[ID_MX5_NC].RPM, ScreenLayout.RPMPosY+35, 319, ScreenLayout.RPMPosY+35);  // horizontal red line
         break;
 
       case ID_MX5_ND:
-        myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+35, ViewWarning[ID].RPM-1, ViewLayout[ID].RPMPosY+35);  // horizontal green line
-        myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+24, 0, ViewLayout[ID].RPMPosY+34);      // 0 rmp mark
-        myGLCD.drawLine(88, ViewLayout[ID].RPMPosY+28, 88, ViewLayout[ID].RPMPosY+34);    // 2000 rpm mark
-        myGLCD.drawLine(175, ViewLayout[ID].RPMPosY+28, 175, ViewLayout[ID].RPMPosY+34);  // 4000 rpm mark
-        myGLCD.drawLine(263, ViewLayout[ID].RPMPosY+28, 263, ViewLayout[ID].RPMPosY+34);  // 6000 rpm mark
-        myGLCD.print("10", 36, ViewLayout[ID].RPMPosY+22);         // 1000 rpm mark -8 pixel
-        myGLCD.print("30", 124, ViewLayout[ID].RPMPosY+22);        // 3000 rpm mark -8 pixel
-        myGLCD.print("50", 211, ViewLayout[ID].RPMPosY+22);        // 5000 rpm mark -8 pixel
+        myGLCD.drawLine(0, ScreenLayout.RPMPosY+35, CarProfile[ID_MX5_ND].RPM-1, ScreenLayout.RPMPosY+35);  // horizontal green line
+        myGLCD.drawLine(0, ScreenLayout.RPMPosY+24, 0, ScreenLayout.RPMPosY+34);      // 0 rmp mark
+        myGLCD.drawLine(88, ScreenLayout.RPMPosY+28, 88, ScreenLayout.RPMPosY+34);    // 2000 rpm mark
+        myGLCD.drawLine(175, ScreenLayout.RPMPosY+28, 175, ScreenLayout.RPMPosY+34);  // 4000 rpm mark
+        myGLCD.drawLine(263, ScreenLayout.RPMPosY+28, 263, ScreenLayout.RPMPosY+34);  // 6000 rpm mark
+        myGLCD.print("10", 36, ScreenLayout.RPMPosY+22);         // 1000 rpm mark -8 pixel
+        myGLCD.print("30", 124, ScreenLayout.RPMPosY+22);        // 3000 rpm mark -8 pixel
+        myGLCD.print("50", 211, ScreenLayout.RPMPosY+22);        // 5000 rpm mark -8 pixel
         myGLCD.setColor(wc_r, wc_g, wc_b);
-        myGLCD.print("70", 299, ViewLayout[ID].RPMPosY+22);        // 7000 rpm mark -8 pixel
-        myGLCD.drawLine(ViewWarning[ID].RPM, ViewLayout[ID].RPMPosY+35, 319, ViewLayout[ID].RPMPosY+35);  // horizontal red line
+        myGLCD.print("70", 299, ScreenLayout.RPMPosY+22);        // 7000 rpm mark -8 pixel
+        myGLCD.drawLine(CarProfile[ID_MX5_ND].RPM, ScreenLayout.RPMPosY+35, 319, ScreenLayout.RPMPosY+35);  // horizontal red line
         break;
 
       case ID_FR20:
-        myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+35, ViewWarning[ID].RPM-1, ViewLayout[ID].RPMPosY+35);  // horizontal green line
-        myGLCD.drawLine(0, ViewLayout[ID].RPMPosY+24, 0, ViewLayout[ID].RPMPosY+34);      // 0 rmp mark
-        myGLCD.drawLine(84, ViewLayout[ID].RPMPosY+28, 84, ViewLayout[ID].RPMPosY+34);    // 2000 rpm mark
-        myGLCD.drawLine(168, ViewLayout[ID].RPMPosY+28, 168, ViewLayout[ID].RPMPosY+34);  // 4000 rpm mark
-        myGLCD.drawLine(253, ViewLayout[ID].RPMPosY+28, 253, ViewLayout[ID].RPMPosY+34);  // 6000 rpm mark
-        myGLCD.print("10", 34, ViewLayout[ID].RPMPosY+22);         // 1000 rpm mark -8 pixel
-        myGLCD.print("30", 118, ViewLayout[ID].RPMPosY+22);        // 3000 rpm mark -8 pixel
-        myGLCD.print("50", 202, ViewLayout[ID].RPMPosY+22);        // 5000 rpm mark -8 pixel
-        myGLCD.print("70", 286, ViewLayout[ID].RPMPosY+22);        // 7000 rpm mark -8 pixel
+        myGLCD.drawLine(0, ScreenLayout.RPMPosY+35, CarProfile[ID_FR20].RPM-1, ScreenLayout.RPMPosY+35);  // horizontal green line
+        myGLCD.drawLine(0, ScreenLayout.RPMPosY+24, 0, ScreenLayout.RPMPosY+34);      // 0 rmp mark
+        myGLCD.drawLine(84, ScreenLayout.RPMPosY+28, 84, ScreenLayout.RPMPosY+34);    // 2000 rpm mark
+        myGLCD.drawLine(168, ScreenLayout.RPMPosY+28, 168, ScreenLayout.RPMPosY+34);  // 4000 rpm mark
+        myGLCD.drawLine(253, ScreenLayout.RPMPosY+28, 253, ScreenLayout.RPMPosY+34);  // 6000 rpm mark
+        myGLCD.print("10", 34, ScreenLayout.RPMPosY+22);         // 1000 rpm mark -8 pixel
+        myGLCD.print("30", 118, ScreenLayout.RPMPosY+22);        // 3000 rpm mark -8 pixel
+        myGLCD.print("50", 202, ScreenLayout.RPMPosY+22);        // 5000 rpm mark -8 pixel
+        myGLCD.print("70", 286, ScreenLayout.RPMPosY+22);        // 7000 rpm mark -8 pixel
         myGLCD.setColor(wc_r, wc_g, wc_b);
-        myGLCD.drawLine(ViewWarning[ID].RPM, ViewLayout[ID].RPMPosY+35, 319, ViewLayout[ID].RPMPosY+35);  // horizontal red line
+        myGLCD.drawLine(CarProfile[ID_FR20].RPM, ScreenLayout.RPMPosY+35, 319, ScreenLayout.RPMPosY+35);  // horizontal red line
     }
   }
+
+  // draw background lines
+  myGLCD.setColor(bc_r, bc_g, bc_b);
+  myGLCD.drawLine(0, 143, 319, 143);
+  myGLCD.drawLine(0, 203, 319, 203);
+  myGLCD.drawRoundRect(270, 74, 319, 130);
 
   // draw car name
   myGLCD.setFont(SmallFont);
   myGLCD.setColor(dc_r, dc_g, dc_b);
-  myGLCD.print(ViewLayout[ID].CarName, 271, 227);
+  myGLCD.print(CarProfile[ID].CarName, 271, 227);
 }
 
 // draw the engine warning icons
@@ -636,8 +568,8 @@ void DrawEngineWarnings(byte ID, byte Warning, byte WarningPrev)
   FilteredPrev = WarningPrev & 0x02;
   if (Filtered != FilteredPrev)
   {
-    if (Filtered != 0) myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +0, ViewLayout[ID].EngineWarningsPosY, 32, 32, fuelpressure_nok);
-    else myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +0, ViewLayout[ID].EngineWarningsPosY, 32, 32, fuelpressure_ok);
+    if (Filtered != 0) myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +0, ScreenLayout.EngineWarningsPosY, 32, 32, fuelpressure_nok);
+    else myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +0, ScreenLayout.EngineWarningsPosY, 32, 32, fuelpressure_ok);
   }
 
   // draw oil pressure light
@@ -646,8 +578,8 @@ void DrawEngineWarnings(byte ID, byte Warning, byte WarningPrev)
   FilteredPrev = WarningPrev & 0x04;
   if (Filtered != FilteredPrev)
   {
-    if (Filtered != 0) myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +32, ViewLayout[ID].EngineWarningsPosY, 32, 32, oilpressure_nok);
-    else myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +32, ViewLayout[ID].EngineWarningsPosY, 32, 32, oilpressure_ok);
+    if (Filtered != 0) myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +32, ScreenLayout.EngineWarningsPosY, 32, 32, oilpressure_nok);
+    else myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +32, ScreenLayout.EngineWarningsPosY, 32, 32, oilpressure_ok);
   }
 
   // draw water temp light
@@ -656,8 +588,8 @@ void DrawEngineWarnings(byte ID, byte Warning, byte WarningPrev)
   FilteredPrev = WarningPrev & 0x01;
   if (Filtered != FilteredPrev)
   {
-    if (Filtered != 0) myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +64, ViewLayout[ID].EngineWarningsPosY, 32, 32, water_nok);
-    else myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +64, ViewLayout[ID].EngineWarningsPosY, 32, 32, water_ok);
+    if (Filtered != 0) myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +64, ScreenLayout.EngineWarningsPosY, 32, 32, water_nok);
+    else myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +64, ScreenLayout.EngineWarningsPosY, 32, 32, water_ok);
   }
 
   // draw pit speed limiter light
@@ -666,8 +598,8 @@ void DrawEngineWarnings(byte ID, byte Warning, byte WarningPrev)
   FilteredPrev = WarningPrev & 0x10;
   if (Filtered != FilteredPrev)
   {
-    if (Filtered != 0) myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +112, ViewLayout[ID].EngineWarningsPosY, 32, 32, pitspeedlimiter_on);
-    else myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +112, ViewLayout[ID].EngineWarningsPosY, 32, 32, pitspeedlimiter_off);
+    if (Filtered != 0) myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +112, ScreenLayout.EngineWarningsPosY, 32, 32, pitspeedlimiter_on);
+    else myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +112, ScreenLayout.EngineWarningsPosY, 32, 32, pitspeedlimiter_off);
   }
 
   // draw stall sign light
@@ -676,8 +608,8 @@ void DrawEngineWarnings(byte ID, byte Warning, byte WarningPrev)
   FilteredPrev = WarningPrev & 0x08;
   if (Filtered != FilteredPrev)
   {
-    if (Filtered != 0) myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +144, ViewLayout[ID].EngineWarningsPosY, 32, 32, stall_on);
-    else myGLCD.drawBitmap(ViewLayout[ID].EngineWarningsPosX +144, ViewLayout[ID].EngineWarningsPosY, 32, 32, stall_off);
+    if (Filtered != 0) myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +144, ScreenLayout.EngineWarningsPosY, 32, 32, stall_on);
+    else myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +144, ScreenLayout.EngineWarningsPosY, 32, 32, stall_off);
   }
 }
 
@@ -685,32 +617,32 @@ void DrawEngineWarnings(byte ID, byte Warning, byte WarningPrev)
 void DrawFuel(byte ID, int Fuel, int FuelPrev)
 {
   myGLCD.setFont(BigFont);
-  if (Fuel <= ViewWarning[ID].Fuel) myGLCD.setColor(wc_r, wc_g, wc_b);
+  if (Fuel <= CarProfile[ID].Fuel) myGLCD.setColor(wc_r, wc_g, wc_b);
   else myGLCD.setColor(dc_r, dc_g, dc_b);
   
-  myGLCD.print(".", ViewLayout[ID].FuelPosX+128, ViewLayout[ID].FuelPosY);
-  myGLCD.printNumI(Fuel % 10, ViewLayout[ID].FuelPosX+144, ViewLayout[ID].FuelPosY);
+  myGLCD.print(".", ScreenLayout.FuelPosX+128, ScreenLayout.FuelPosY);
+  myGLCD.printNumI(Fuel % 10, ScreenLayout.FuelPosX+144, ScreenLayout.FuelPosY);
                   
   // draw the integer value right justified
   if (Fuel < 100)
   {
-    myGLCD.printNumI(Fuel / 10, ViewLayout[ID].FuelPosX+112, ViewLayout[ID].FuelPosY);
+    myGLCD.printNumI(Fuel / 10, ScreenLayout.FuelPosX+112, ScreenLayout.FuelPosY);
     if (FuelPrev >= 100)  // previous value was greater than 9, so we have to clear the above 10 value from the screen
     {
       myGLCD.setColor(0, 0, 0);
-      myGLCD.fillRect(ViewLayout[ID].FuelPosX+80, ViewLayout[ID].FuelPosY, ViewLayout[ID].FuelPosX+112, ViewLayout[ID].FuelPosY+16);
+      myGLCD.fillRect(ScreenLayout.FuelPosX+80, ScreenLayout.FuelPosY, ScreenLayout.FuelPosX+112, ScreenLayout.FuelPosY+16);
     }
   }
   else if (Fuel < 1000)
   {
-    myGLCD.printNumI(Fuel / 10, ViewLayout[ID].FuelPosX+96, ViewLayout[ID].FuelPosY);
+    myGLCD.printNumI(Fuel / 10, ScreenLayout.FuelPosX+96, ScreenLayout.FuelPosY);
     if (FuelPrev >= 1000)  // previous value was greater than 99, so we have to clear the above 100 value from the screen
     {
       myGLCD.setColor(0, 0, 0);
-      myGLCD.fillRect(ViewLayout[ID].FuelPosX+80, ViewLayout[ID].FuelPosY, ViewLayout[ID].FuelPosX+96, ViewLayout[ID].FuelPosY+16);
+      myGLCD.fillRect(ScreenLayout.FuelPosX+80, ScreenLayout.FuelPosY, ScreenLayout.FuelPosX+96, ScreenLayout.FuelPosY+16);
     }
   }
-  else if (Fuel < 10000) myGLCD.printNumI(Fuel / 10, ViewLayout[ID].FuelPosX+80, ViewLayout[ID].FuelPosY);
+  else if (Fuel < 10000) myGLCD.printNumI(Fuel / 10, ScreenLayout.FuelPosX+80, ScreenLayout.FuelPosY);
 }
 
 // draw gear number
@@ -720,12 +652,12 @@ void DrawGear(byte ID, char Gear)
   if (InData->Gear <= -1)  // reverse gear
   {
     myGLCD.setColor(wc_r, wc_g, wc_b);
-    myGLCD.print("1", ViewLayout[ID].GearPosX, ViewLayout[ID].GearPosY);
+    myGLCD.print("1", ScreenLayout.GearPosX, ScreenLayout.GearPosY);
   }
   else
   {
     myGLCD.setColor(dc_r, dc_g, dc_b);
-    if (Gear>=0 and Gear<10) myGLCD.printNumI(Gear, ViewLayout[ID].GearPosX, ViewLayout[ID].GearPosY);
+    if (Gear>=0 and Gear<10) myGLCD.printNumI(Gear, ScreenLayout.GearPosX, ScreenLayout.GearPosY);
   }
 }
 
@@ -733,28 +665,28 @@ void DrawGear(byte ID, char Gear)
 void DrawWaterTemp(byte ID, int WaterTemp, int WaterTempPrev)
 {
   myGLCD.setFont(BigFont);
-  if (WaterTemp >= ViewWarning[ID].WaterTemp) myGLCD.setColor(wc_r, wc_g, wc_b);
+  if (WaterTemp >= CarProfile[ID].WaterTemp) myGLCD.setColor(wc_r, wc_g, wc_b);
   else myGLCD.setColor(dc_r, dc_g, dc_b);
                   
   if (WaterTemp < 10 && WaterTemp > 0)
   {
-    myGLCD.printNumI(WaterTemp, ViewLayout[ID].WaterTempPosX+144, ViewLayout[ID].WaterTempPosY);
+    myGLCD.printNumI(WaterTemp, ScreenLayout.WaterTempPosX+144, ScreenLayout.WaterTempPosY);
     if (WaterTempPrev >= 10)  // previous value was greater than 9, so we have to clear the above 10 value from the screen
     {
       myGLCD.setColor(0, 0, 0);
-      myGLCD.fillRect(ViewLayout[ID].WaterTempPosX+112, ViewLayout[ID].WaterTempPosY, ViewLayout[ID].WaterTempPosX+144, ViewLayout[ID].WaterTempPosY+16);
+      myGLCD.fillRect(ScreenLayout.WaterTempPosX+112, ScreenLayout.WaterTempPosY, ScreenLayout.WaterTempPosX+144, ScreenLayout.WaterTempPosY+16);
     }
   }
   else if (WaterTemp < 100 && WaterTemp > 0)
        {
-         myGLCD.printNumI(WaterTemp, ViewLayout[ID].WaterTempPosX+128, ViewLayout[ID].WaterTempPosY);
+         myGLCD.printNumI(WaterTemp, ScreenLayout.WaterTempPosX+128, ScreenLayout.WaterTempPosY);
          if (WaterTempPrev >= 100)  // previous value was greater than 99, so we have to clear the above 100 value from the screen
          {
            myGLCD.setColor(0, 0, 0);
-           myGLCD.fillRect(ViewLayout[ID].WaterTempPosX+112, ViewLayout[ID].WaterTempPosY, ViewLayout[ID].WaterTempPosX+128, ViewLayout[ID].WaterTempPosY+16);
+           myGLCD.fillRect(ScreenLayout.WaterTempPosX+112, ScreenLayout.WaterTempPosY, ScreenLayout.WaterTempPosX+128, ScreenLayout.WaterTempPosY+16);
          }                    
        }
-       else if (WaterTemp<1000 && WaterTemp>0) myGLCD.printNumI(WaterTemp, ViewLayout[ID].WaterTempPosX+112, ViewLayout[ID].WaterTempPosY);
+       else if (WaterTemp<1000 && WaterTemp>0) myGLCD.printNumI(WaterTemp, ScreenLayout.WaterTempPosX+112, ScreenLayout.WaterTempPosY);
 }
 
 // draw RPM gauge
@@ -763,28 +695,28 @@ void DrawRPM(byte ID, int RPM, int RPMPrev)
   // RPM is bigger than the previous
   if (RPMPrev < RPM)
   {
-    if (RPM >= ViewWarning[ID].RPM)  // RPM is bigger than warning limit
+    if (RPM >= CarProfile[ID].RPM)  // RPM is bigger than the warning limit
     {
-      if (RPMPrev < ViewWarning[ID].RPM)
+      if (RPMPrev < CarProfile[ID].RPM)
       {
         // we have to draw both color on the RPM gauge
         myGLCD.setColor(dc_r, dc_g, dc_b);
-        myGLCD.fillRect(RPMPrev, ViewLayout[ID].RPMPosY, ViewWarning[ID].RPM-1, ViewLayout[ID].RPMPosY+20);
+        myGLCD.fillRect(RPMPrev, ScreenLayout.RPMPosY, CarProfile[ID].RPM-1, ScreenLayout.RPMPosY+20);
         myGLCD.setColor(wc_r, wc_g, wc_b);
-        myGLCD.fillRect(ViewWarning[ID].RPM, ViewLayout[ID].RPMPosY, RPM, ViewLayout[ID].RPMPosY+20);
+        myGLCD.fillRect(CarProfile[ID].RPM, ScreenLayout.RPMPosY, RPM, ScreenLayout.RPMPosY+20);
       }
       else
       {
         // only the warning color have to be used
         myGLCD.setColor(wc_r, wc_g, wc_b);
-        myGLCD.fillRect(RPMPrev, ViewLayout[ID].RPMPosY, RPM, ViewLayout[ID].RPMPosY+20);
+        myGLCD.fillRect(RPMPrev, ScreenLayout.RPMPosY, RPM, ScreenLayout.RPMPosY+20);
       }
     }
     else
     {
-      // only the default color have to be used
+      // RPM is not bigger than the warning limit, only the default color have to be used
       myGLCD.setColor(dc_r, dc_g, dc_b);
-      myGLCD.fillRect(RPMPrev, ViewLayout[ID].RPMPosY, RPM, ViewLayout[ID].RPMPosY+20);
+      myGLCD.fillRect(RPMPrev, ScreenLayout.RPMPosY, RPM, ScreenLayout.RPMPosY+20);
     }
   }
 
@@ -792,7 +724,7 @@ void DrawRPM(byte ID, int RPM, int RPMPrev)
   if (RPMPrev > RPM)
   {
     myGLCD.setColor(0, 0, 0);
-    myGLCD.fillRect(RPMPrev, ViewLayout[ID].RPMPosY, RPM, ViewLayout[ID].RPMPosY+20);
+    myGLCD.fillRect(RPMPrev, ScreenLayout.RPMPosY, RPM, ScreenLayout.RPMPosY+20);
   }
 }
 
@@ -803,23 +735,23 @@ void DrawSpeed(byte ID, int Speed, int SpeedPrev)
   myGLCD.setColor(dc_r, dc_g, dc_b);
   if (Speed<10)
   {
-    myGLCD.printNumI(Speed, ViewLayout[ID].SpeedPosX+144, ViewLayout[ID].SpeedPosY);
+    myGLCD.printNumI(Speed, ScreenLayout.SpeedPosX+144, ScreenLayout.SpeedPosY);
     if (SpeedPrev>=10)
     {
       myGLCD.setColor(0, 0, 0);
-      myGLCD.fillRect(ViewLayout[ID].SpeedPosX+112, ViewLayout[ID].SpeedPosY, ViewLayout[ID].SpeedPosX+144, ViewLayout[ID].SpeedPosY+16);
+      myGLCD.fillRect(ScreenLayout.SpeedPosX+112, ScreenLayout.SpeedPosY, ScreenLayout.SpeedPosX+144, ScreenLayout.SpeedPosY+16);
     }
   }
   else if (Speed<100)
        {
-         myGLCD.printNumI(Speed, ViewLayout[ID].SpeedPosX+128, ViewLayout[ID].SpeedPosY);
+         myGLCD.printNumI(Speed, ScreenLayout.SpeedPosX+128, ScreenLayout.SpeedPosY);
          if (SpeedPrev>=100)
          {
            myGLCD.setColor(0, 0, 0);
-           myGLCD.fillRect(ViewLayout[ID].SpeedPosX+112, ViewLayout[ID].SpeedPosY, ViewLayout[ID].SpeedPosX+128, ViewLayout[ID].SpeedPosY+16);
+           myGLCD.fillRect(ScreenLayout.SpeedPosX+112, ScreenLayout.SpeedPosY, ScreenLayout.SpeedPosX+128, ScreenLayout.SpeedPosY+16);
          }
        }
-  else if (Speed<1000) myGLCD.printNumI(Speed, ViewLayout[ID].SpeedPosX+112, ViewLayout[ID].SpeedPosY);
+  else if (Speed<1000) myGLCD.printNumI(Speed, ScreenLayout.SpeedPosX+112, ScreenLayout.SpeedPosY);
 }
 
 // draw shift light indicator
@@ -833,13 +765,13 @@ void DrawSLI(byte ID, int SLI, int SLIPrev)
     {
       switch (i)
       {
-        case 0: myGLCD.fillRect(10, ViewLayout[ID].SLIPosY, 70, ViewLayout[ID].SLIPosY+16);
+        case 0: myGLCD.fillRect(10, ScreenLayout.SLIPosY, 70, ScreenLayout.SLIPosY+16);
                 break;
-        case 1: myGLCD.fillRect(90, ViewLayout[ID].SLIPosY, 150, ViewLayout[ID].SLIPosY+16);
+        case 1: myGLCD.fillRect(90, ScreenLayout.SLIPosY, 150, ScreenLayout.SLIPosY+16);
                 break;
-        case 2: myGLCD.fillRect(170, ViewLayout[ID].SLIPosY, 230, ViewLayout[ID].SLIPosY+16);
+        case 2: myGLCD.fillRect(170, ScreenLayout.SLIPosY, 230, ScreenLayout.SLIPosY+16);
                 break;
-        case 3: myGLCD.fillRect(250, ViewLayout[ID].SLIPosY, 310, ViewLayout[ID].SLIPosY+16);
+        case 3: myGLCD.fillRect(250, ScreenLayout.SLIPosY, 310, ScreenLayout.SLIPosY+16);
                 break;
       }
     }
@@ -852,16 +784,16 @@ void DrawSLI(byte ID, int SLI, int SLIPrev)
       switch (i)
       {
         case 1: myGLCD.setColor(dc_r, dc_g, dc_b);
-                myGLCD.fillRect(10, ViewLayout[ID].SLIPosY, 70, ViewLayout[ID].SLIPosY+16);
+                myGLCD.fillRect(10, ScreenLayout.SLIPosY, 70, ScreenLayout.SLIPosY+16);
                 break;
         case 2: myGLCD.setColor(dc_r, dc_g, dc_b);
-                myGLCD.fillRect(90, ViewLayout[ID].SLIPosY, 150, ViewLayout[ID].SLIPosY+16);
+                myGLCD.fillRect(90, ScreenLayout.SLIPosY, 150, ScreenLayout.SLIPosY+16);
                 break;
         case 3: myGLCD.setColor(mc_r, mc_g, mc_b);
-                myGLCD.fillRect(170, ViewLayout[ID].SLIPosY, 230, ViewLayout[ID].SLIPosY+16);
+                myGLCD.fillRect(170, ScreenLayout.SLIPosY, 230, ScreenLayout.SLIPosY+16);
                 break;
         case 4: myGLCD.setColor(wc_r, wc_g, wc_b);
-                myGLCD.fillRect(250, ViewLayout[ID].SLIPosY, 310, ViewLayout[ID].SLIPosY+16);
+                myGLCD.fillRect(250, ScreenLayout.SLIPosY, 310, ScreenLayout.SLIPosY+16);
                 break;
      }
    }
@@ -897,7 +829,7 @@ void setup()
   pInData = (byte*)InData;     // set the byte array pointer to the telemetry data
   ResetInternalData();
 
-  UploadCarProfiles();
+  UploadProfiles();
   DrawBackground(DefaultCar);  // draw the default screen layout
   ActiveCar = DefaultCar;
 }
@@ -906,7 +838,7 @@ void loop()
 {
   int rpm_int, pressed_button;
   char gear;
-  int x, y;
+  int x, y; // position of the screen touch
 
   // read serial port
   if (Serial.available() > 0)
@@ -931,6 +863,7 @@ void loop()
                 *(pInData +blockpos-3) = inByte;  // we don't store the identification header
                 blockpos++;
               }
+              
               if (blockpos == sizeof(SIncomingData)+4)  // last byte of the incoming telemetry data was received, now the screen can be drawn
               {
                 // draw screen and draw only activated gauges
@@ -938,41 +871,41 @@ void loop()
 
                 // draw Engine Warning lights
                 Screen[1].EngineWarnings = InData->EngineWarnings;
-                if (Screen[0].EngineWarnings != Screen[1].EngineWarnings && ViewLayout[ActiveCar].ShowEngineWarnings == true) DrawEngineWarnings(ActiveCar, Screen[1].EngineWarnings, Screen[0].EngineWarnings);
+                if (Screen[0].EngineWarnings != Screen[1].EngineWarnings && ScreenLayout.ShowEngineWarnings == true) DrawEngineWarnings(ActiveCar, Screen[1].EngineWarnings, Screen[0].EngineWarnings);
 
                 // draw RPM gauge
-                Screen[1].RPMgauge = (int)(InData->RPM / ViewLayout[ActiveCar].RPMscale);
-                if (Screen[1].RPMgauge > ScreenWidth) Screen[1].RPMgauge = ScreenWidth;  // limit RPM gauge to maximum display width
-                if (Screen[0].RPMgauge != Screen[1].RPMgauge && ViewLayout[ActiveCar].ShowRPM == true) DrawRPM(ActiveCar, Screen[1].RPMgauge, Screen[0].RPMgauge);
+                Screen[1].RPMgauge = (int)(InData->RPM / CarProfile[ActiveCar].RPMscale);
+                if (Screen[1].RPMgauge > 319) Screen[1].RPMgauge = 319;  // limit RPM gauge to maximum display width
+                if (Screen[0].RPMgauge != Screen[1].RPMgauge && ScreenLayout.ShowRPM == true) DrawRPM(ActiveCar, Screen[1].RPMgauge, Screen[0].RPMgauge);
 
                 // draw gear number
                 Screen[1].Gear = InData->Gear;
-                if (Screen[0].Gear != Screen[1].Gear && ViewLayout[ActiveCar].ShowGear == true) DrawGear(ActiveCar, Screen[1].Gear);
+                if (Screen[0].Gear != Screen[1].Gear && ScreenLayout.ShowGear == true) DrawGear(ActiveCar, Screen[1].Gear);
 
                 // draw fuel level gauge
                 Screen[1].Fuel = (int)(InData->Fuel*10); // convert float data to int and keep the first digit of the fractional part also
-                if (Screen[0].Fuel != Screen[1].Fuel && ViewLayout[ActiveCar].ShowFuel == true) DrawFuel(ActiveCar, Screen[1].Fuel, Screen[0].Fuel);
+                if (Screen[0].Fuel != Screen[1].Fuel && ScreenLayout.ShowFuel == true) DrawFuel(ActiveCar, Screen[1].Fuel, Screen[0].Fuel);
 
                 // draw speed gauge
                 Screen[1].Speed = (int)(InData->Speed*3.6);  // convert m/s to km/h
-                if (Screen[0].Speed != Screen[1].Speed && ViewLayout[ActiveCar].ShowSpeed == true) DrawSpeed(ActiveCar, Screen[1].Speed, Screen[0].Speed);
+                if (Screen[0].Speed != Screen[1].Speed && ScreenLayout.ShowSpeed == true) DrawSpeed(ActiveCar, Screen[1].Speed, Screen[0].Speed);
 
                 // draw water temperature gauge
                 Screen[1].WaterTemp = (int)InData->WaterTemp;
-                if (Screen[0].WaterTemp != Screen[1].WaterTemp && ViewLayout[ActiveCar].ShowWaterTemp == true) DrawWaterTemp(ActiveCar, Screen[1].WaterTemp, Screen[0].WaterTemp);
+                if (Screen[0].WaterTemp != Screen[1].WaterTemp && ScreenLayout.ShowWaterTemp == true) DrawWaterTemp(ActiveCar, Screen[1].WaterTemp, Screen[0].WaterTemp);
                 
                 // draw shift light indicator
                 gear = InData->Gear+1;  // "-1" corresponds to reverse but index should start with "0"
                 rpm_int = (int)InData->RPM;
-                if (rpm_int <= ViewWarning[ActiveCar].SLI[gear][0]) Screen[1].SLI = 0; // determine how many light to be activated for the current gear
+                if (rpm_int <= CarProfile[ActiveCar].SLI[gear][0]) Screen[1].SLI = 0; // determine how many light to be activated for the current gear
                 else
                 {
-                  if (rpm_int > ViewWarning[ActiveCar].SLI[gear][3]) Screen[1].SLI = 4;
-                  else if (rpm_int > ViewWarning[ActiveCar].SLI[gear][2]) Screen[1].SLI = 3;
-                       else if (rpm_int > ViewWarning[ActiveCar].SLI[gear][1]) Screen[1].SLI = 2;
-                            else if (rpm_int > ViewWarning[ActiveCar].SLI[gear][0]) Screen[1].SLI = 1;
+                  if (rpm_int > CarProfile[ActiveCar].SLI[gear][3]) Screen[1].SLI = 4;
+                  else if (rpm_int > CarProfile[ActiveCar].SLI[gear][2]) Screen[1].SLI = 3;
+                       else if (rpm_int > CarProfile[ActiveCar].SLI[gear][1]) Screen[1].SLI = 2;
+                            else if (rpm_int > CarProfile[ActiveCar].SLI[gear][0]) Screen[1].SLI = 1;
                 }
-                if (Screen[0].SLI != Screen[1].SLI && ViewLayout[ActiveCar].ShowSLI == true) DrawSLI(ActiveCar, Screen[1].SLI, Screen[0].SLI);
+                if (Screen[0].SLI != Screen[1].SLI && ScreenLayout.ShowSLI == true) DrawSLI(ActiveCar, Screen[1].SLI, Screen[0].SLI);
 
                 // update old screen data
                 Screen[0].EngineWarnings = Screen[1].EngineWarnings;
