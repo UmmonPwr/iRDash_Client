@@ -16,6 +16,7 @@ Currently it has profile for:
 - Skippy
 - Cadillac CTS-V
 - MX-5 (NC and ND)
+- Formula Renault 2.0
 
 The program is developed on an Arduino Mega 2560 and a 320x240 resolution touch sensitive TFT display. If you have different Arduino board and / or a different display then you need to adjust the screen initialization in the UTFT library accordingly.
 The screen layout is optimized for the 320x240 resolution, but it is relatively easy to modify it for other resolutions.
@@ -24,4 +25,4 @@ To display the live data of iRacing it needs the "iRDash Server" program running
 https://github.com/UmmonPwr/iRDash-Server
 
 To compile the program you need the below libraries:
-- http://www.rinkydinkelectronics.com/ : UTFT, UTouch, UTFT_Buttons
+- http://www.rinkydinkelectronics.com/ : UTFT, URTouch, UTFT_Buttons
