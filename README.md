@@ -4,7 +4,7 @@ Displays live data of iRacing telemetry using an Arduino board plus a TFT displa
 The purpose of this program is to display iRacing's live telemetry data on an Arduino TFT display.
 As of now it can show:
 - RPM
-- Four segment Shift Light Indicator
+- Eight segment Shift Light Indicator
 - Gear
 - Fuel quantity
 - Water temperature
