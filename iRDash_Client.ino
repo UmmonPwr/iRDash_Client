@@ -35,8 +35,6 @@ extern unsigned int fuelpressure_nok[0x400];
 extern unsigned int fuelpressure_ok[0x400];
 extern unsigned int oilpressure_nok[0x400];
 extern unsigned int oilpressure_ok[0x400];
-extern unsigned int pitspeedlimiter_off[0x400];
-extern unsigned int pitspeedlimiter_on[0x400];
 extern unsigned int stall_off[0x400];
 extern unsigned int stall_on[0x400];
 extern unsigned int water_nok[0x400];
@@ -135,7 +133,7 @@ struct SScreenLayout
 struct SCarProfile
 {
   char CarName[10];
-  int Fuel;                   // value in liter * 10
+  int Fuel;                   // value which below warning color drawed (value in liter * 10)
   int RPM;                    // value where the redline starts in pixels
   float RPMscale;             // actual RPM value is divided by this number to scale it to display coordinate
   int WaterTemp;              // value in Celsius
@@ -201,8 +199,8 @@ void UploadProfiles()
   CarProfile[ID_Skippy].CarName[6] = 0;
 
   CarProfile[ID_Skippy].Fuel = 25;
-  CarProfile[ID_Skippy].RPM = 291;          // 6000 / RPMscale
-  CarProfile[ID_Skippy].RPMscale = 20.625;  // 6600 / 320
+  CarProfile[ID_Skippy].RPM = 291;          // 6000 / RPMscale; where the redline starts on the gauge
+  CarProfile[ID_Skippy].RPMscale = 20.625;  // 6600 / 320; max RPM divided by screen width
   CarProfile[ID_Skippy].WaterTemp = 90;
 
   CarProfile[ID_Skippy].SLI[0] = 4700;
@@ -222,7 +220,7 @@ void UploadProfiles()
   CarProfile[ID_CTS_V].CarName[4] = 'V';
   CarProfile[ID_CTS_V].CarName[5] = 0;
 
-  CarProfile[ID_CTS_V].Fuel = 80;
+  CarProfile[ID_CTS_V].Fuel = 40;
   CarProfile[ID_CTS_V].RPM = 288;         // 7200 / RPMscale
   CarProfile[ID_CTS_V].RPMscale = 25;     // 8000 / 320
   CarProfile[ID_CTS_V].WaterTemp = 110;
@@ -291,7 +289,7 @@ void UploadProfiles()
   CarProfile[ID_FR20].CarName[5] = '0';
   CarProfile[ID_FR20].CarName[6] = 0;
 
-  CarProfile[ID_FR20].Fuel = 40;
+  CarProfile[ID_FR20].Fuel = 30;
   CarProfile[ID_FR20].RPM = 307;           // 7300 / RPMscale
   CarProfile[ID_FR20].RPMscale = 23.75;    // 7600 / 320
   CarProfile[ID_FR20].WaterTemp = 100;
@@ -320,11 +318,11 @@ void DrawBackground(byte ID)
   if(ScreenLayout.ShowEngineWarnings == true)
   {
     // draw the off state warning lights
+    // must match to the positions used in the "DrawEngineWarnings" function
     myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +0, ScreenLayout.EngineWarningsPosY, 32, 32, fuelpressure_ok);
-    myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +32, ScreenLayout.EngineWarningsPosY, 32, 32, oilpressure_ok);
-    myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +64, ScreenLayout.EngineWarningsPosY, 32, 32, water_ok);
-    myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +112, ScreenLayout.EngineWarningsPosY, 32, 32, pitspeedlimiter_off);
-    myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +144, ScreenLayout.EngineWarningsPosY, 32, 32, stall_off);
+    myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +40, ScreenLayout.EngineWarningsPosY, 32, 32, oilpressure_ok);
+    myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +80, ScreenLayout.EngineWarningsPosY, 32, 32, water_ok);
+    myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +120, ScreenLayout.EngineWarningsPosY, 32, 32, stall_off);
     
   }
   
@@ -467,8 +465,8 @@ void DrawEngineWarnings(byte ID, byte Warning, byte WarningPrev)
   FilteredPrev = WarningPrev & 0x04;
   if (Filtered != FilteredPrev)
   {
-    if (Filtered != 0) myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +32, ScreenLayout.EngineWarningsPosY, 32, 32, oilpressure_nok);
-    else myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +32, ScreenLayout.EngineWarningsPosY, 32, 32, oilpressure_ok);
+    if (Filtered != 0) myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +40, ScreenLayout.EngineWarningsPosY, 32, 32, oilpressure_nok);
+    else myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +40, ScreenLayout.EngineWarningsPosY, 32, 32, oilpressure_ok);
   }
 
   // draw water temp light
@@ -477,18 +475,8 @@ void DrawEngineWarnings(byte ID, byte Warning, byte WarningPrev)
   FilteredPrev = WarningPrev & 0x01;
   if (Filtered != FilteredPrev)
   {
-    if (Filtered != 0) myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +64, ScreenLayout.EngineWarningsPosY, 32, 32, water_nok);
-    else myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +64, ScreenLayout.EngineWarningsPosY, 32, 32, water_ok);
-  }
-
-  // draw pit speed limiter light
-  // check only the bit which contains this warning light
-  Filtered = Warning & 0x10;
-  FilteredPrev = WarningPrev & 0x10;
-  if (Filtered != FilteredPrev)
-  {
-    if (Filtered != 0) myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +112, ScreenLayout.EngineWarningsPosY, 32, 32, pitspeedlimiter_on);
-    else myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +112, ScreenLayout.EngineWarningsPosY, 32, 32, pitspeedlimiter_off);
+    if (Filtered != 0) myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +80, ScreenLayout.EngineWarningsPosY, 32, 32, water_nok);
+    else myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +80, ScreenLayout.EngineWarningsPosY, 32, 32, water_ok);
   }
 
   // draw stall sign light
@@ -497,8 +485,8 @@ void DrawEngineWarnings(byte ID, byte Warning, byte WarningPrev)
   FilteredPrev = WarningPrev & 0x08;
   if (Filtered != FilteredPrev)
   {
-    if (Filtered != 0) myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +144, ScreenLayout.EngineWarningsPosY, 32, 32, stall_on);
-    else myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +144, ScreenLayout.EngineWarningsPosY, 32, 32, stall_off);
+    if (Filtered != 0) myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +120, ScreenLayout.EngineWarningsPosY, 32, 32, stall_on);
+    else myGLCD.drawBitmap(ScreenLayout.EngineWarningsPosX +120, ScreenLayout.EngineWarningsPosY, 32, 32, stall_off);
   }
 }
 
@@ -579,41 +567,61 @@ void DrawWaterTemp(byte ID, int WaterTemp, int WaterTempPrev)
 }
 
 // draw RPM gauge
-void DrawRPM(byte ID, int RPM, int RPMPrev)
+void DrawRPM(byte ID, int RPM, int RPMPrev, byte Limiter, byte LimiterPrev)
 {
-  // RPM is bigger than the previous
-  if (RPMPrev < RPM)
+  if (Limiter == 0 && LimiterPrev != 0) //  RPM limiter was just switched off so we have to clear off the text
   {
-    if (RPM >= CarProfile[ID].RPM)  // RPM is bigger than the warning limit
+    RPMPrev = 0;  //  redraw the complete RPM bar
+    myGLCD.setColor(0, 0, 0);
+    myGLCD.fillRect(73, ScreenLayout.RPMPosY, 250, ScreenLayout.RPMPosY+20);  // clear the "PIT LIMITER" text from screen
+  }
+
+  if (Limiter != 0 && LimiterPrev == 0) //  RPM limiter was just switched on so we have to clear the RPM gauge and display the text
+  {
+    myGLCD.setColor(0, 0, 0);
+    myGLCD.fillRect(0, ScreenLayout.RPMPosY, RPMPrev, ScreenLayout.RPMPosY+20);
+    
+    myGLCD.setColor(mc_r, mc_g, mc_b);
+    myGLCD.setFont(BigFont);
+    myGLCD.print("PIT LIMITER", 73, ScreenLayout.RPMPosY);
+  }
+
+  if (Limiter == 0) // we can draw the gauge because the limiter is off
+  {
+    // RPM is bigger than the previous
+    if (RPMPrev < RPM)
     {
-      if (RPMPrev < CarProfile[ID].RPM)
+      if (RPM >= CarProfile[ID].RPM)  // RPM is bigger than the warning limit
       {
-        // we have to draw both color on the RPM gauge
-        myGLCD.setColor(dc_r, dc_g, dc_b);
-        myGLCD.fillRect(RPMPrev, ScreenLayout.RPMPosY, CarProfile[ID].RPM-1, ScreenLayout.RPMPosY+20);
-        myGLCD.setColor(wc_r, wc_g, wc_b);
-        myGLCD.fillRect(CarProfile[ID].RPM, ScreenLayout.RPMPosY, RPM, ScreenLayout.RPMPosY+20);
+        if (RPMPrev < CarProfile[ID].RPM)
+        {
+          // we have to draw both color on the RPM gauge
+          myGLCD.setColor(dc_r, dc_g, dc_b);
+          myGLCD.fillRect(RPMPrev, ScreenLayout.RPMPosY, CarProfile[ID].RPM-1, ScreenLayout.RPMPosY+20);
+          myGLCD.setColor(wc_r, wc_g, wc_b);
+          myGLCD.fillRect(CarProfile[ID].RPM, ScreenLayout.RPMPosY, RPM, ScreenLayout.RPMPosY+20);
+        }
+        else
+        {
+          // only the warning color have to be used
+          myGLCD.setColor(wc_r, wc_g, wc_b);
+          myGLCD.fillRect(RPMPrev, ScreenLayout.RPMPosY, RPM, ScreenLayout.RPMPosY+20);
+        }
       }
       else
       {
-        // only the warning color have to be used
-        myGLCD.setColor(wc_r, wc_g, wc_b);
+        // RPM is not bigger than the warning limit, only the default color have to be used
+        myGLCD.setColor(dc_r, dc_g, dc_b);
         myGLCD.fillRect(RPMPrev, ScreenLayout.RPMPosY, RPM, ScreenLayout.RPMPosY+20);
       }
     }
-    else
+
+    // RPM is lower than the previous
+    if (RPMPrev > RPM)
     {
-      // RPM is not bigger than the warning limit, only the default color have to be used
-      myGLCD.setColor(dc_r, dc_g, dc_b);
+      myGLCD.setColor(0, 0, 0);
       myGLCD.fillRect(RPMPrev, ScreenLayout.RPMPosY, RPM, ScreenLayout.RPMPosY+20);
     }
-  }
-
-  // RPM is lower than the previous
-  if (RPMPrev > RPM)
-  {
-    myGLCD.setColor(0, 0, 0);
-    myGLCD.fillRect(RPMPrev, ScreenLayout.RPMPosY, RPM, ScreenLayout.RPMPosY+20);
   }
 }
 
@@ -746,6 +754,7 @@ void setup()
 void loop()
 {
   int rpm_int, pressed_button;
+  byte Limiter[2];
   int x, y; // position of the screen touch
 
   // read serial port
@@ -774,7 +783,7 @@ void loop()
               
               if (blockpos == sizeof(SIncomingData)+4)  // last byte of the incoming telemetry data was received, now the screen can be drawn
               {
-                // draw screen and draw only activated gauges
+                // update screen and draw only the activated gauges
                 blockpos = 0; // reset block position
 
                 // draw Engine Warning lights
@@ -783,8 +792,10 @@ void loop()
 
                 // draw RPM gauge
                 Screen[1].RPMgauge = (int)(InData->RPM / CarProfile[ActiveCar].RPMscale);
+                Limiter[0] = Screen[0].EngineWarnings & 0x10;
+                Limiter[1] = Screen[1].EngineWarnings & 0x10;
                 if (Screen[1].RPMgauge > 319) Screen[1].RPMgauge = 319;  // limit RPM gauge to maximum display width
-                if (Screen[0].RPMgauge != Screen[1].RPMgauge && ScreenLayout.ShowRPM == true) DrawRPM(ActiveCar, Screen[1].RPMgauge, Screen[0].RPMgauge);
+                if ((Screen[0].RPMgauge != Screen[1].RPMgauge || Limiter[1] != Limiter[0]) && ScreenLayout.ShowRPM == true) DrawRPM(ActiveCar, Screen[1].RPMgauge, Screen[0].RPMgauge, Limiter[1], Limiter[0]);
 
                 // draw gear number
                 Screen[1].Gear = InData->Gear;
