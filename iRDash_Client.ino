@@ -85,9 +85,10 @@ UTFT_Buttons  myButtons(&myGLCD, &myTouch);
 struct SIncomingData
 {
   byte EngineWarnings;
-  float Fuel;
   char Gear;
+  bool IsInGarage;
   bool IsOnTrack;
+  float Fuel;
   float RPM;
   float Speed;
   float WaterTemp;
@@ -526,7 +527,7 @@ void DrawFuel(byte ID, int Fuel, int FuelPrev)
 void DrawGear(byte ID, char Gear)
 {
   myGLCD.setFont(SevenSegNumFont);  // 32x50
-  if (InData->Gear <= -1)  // reverse gear
+  if (Gear <= -1)  // reverse gear
   {
     myGLCD.setColor(wc_r, wc_g, wc_b);
     myGLCD.print("1", ScreenLayout.GearPosX, ScreenLayout.GearPosY);
