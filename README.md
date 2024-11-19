@@ -1,6 +1,11 @@
 # iRDash_Client
 Displays live data of iRacing telemetry using an Arduino board plus a TFT display.
 
+# !!!Project is discontinued!!!
+Please check the below projects instead.
+https://github.com/UmmonPwr/iRDash_Client_v2
+https://github.com/UmmonPwr/iRDash_Client_v3
+
 The purpose of this program is to display iRacing's live telemetry data on an Arduino TFT display.
 As of now it can show:
 - RPM
