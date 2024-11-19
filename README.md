@@ -32,3 +32,6 @@ https://github.com/UmmonPwr/iRDash-Server
 
 To compile the program you need the below libraries:
 - http://www.rinkydinkelectronics.com/ : UTFT, URTouch, UTFT_Buttons
+
+## Screenshot:
+<img src="preview.jpg" width=700>
